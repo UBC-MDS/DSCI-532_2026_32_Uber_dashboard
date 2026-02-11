@@ -1,0 +1,28 @@
+name: dsci-532-2026
+channels:
+  - conda-forge
+dependencies:
+  # core interpreter
+  - python>=3.12
+  - numpy>=2.0
+  - pip
+
+  # runtime deps (match pyproject.toml)
+  - numpy
+  - pandas
+
+  # testing & dev tooling
+  - pytest
+  - pytest-cov
+
+  # packaging / build tools
+  - quarto
+ 
+ # PyPI-only tools (must be installed via pip)
+  - pip:
+      - build
+      - hatch
+      - twine
+      - wheel
+      - quartodoc
+      - -e .
