@@ -104,3 +104,5 @@ Before you submit a pull request, check that it meets these guidelines:
    new functionality into a function with a docstring.
 3. Your pull request will automatically be checked by the full test suite.
    It needs to pass all of them before it can be considered for merging.
+### Acknowledgement
+This contribution file was adapted from the DSCI 524 Group 32 . 
