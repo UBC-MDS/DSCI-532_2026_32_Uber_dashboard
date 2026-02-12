@@ -1,28 +1,22 @@
-name: dsci-532-2026
+name: dsci-532_2026_uber_dashboard
 channels:
   - conda-forge
 dependencies:
-  # core interpreter
   - python>=3.12
-  - numpy>=2.0
   - pip
-
-  # runtime deps (match pyproject.toml)
-  - numpy
   - pandas
+  - numpy
+  - matplotlib
+  - seaborn
+  - plotly
+  - jupyterlab
+  - notebook
+  - ipykernel
+  - scikit-learn
+  - scipy
 
-  # testing & dev tooling
-  - pytest
-  - pytest-cov
-
-  # packaging / build tools
-  - quarto
- 
- # PyPI-only tools (must be installed via pip)
   - pip:
-      - build
-      - hatch
-      - twine
-      - wheel
-      - quartodoc
-      - -e .
+      - shiny
+      - shinywidgets
+      - faicons
+      - uvicorn
