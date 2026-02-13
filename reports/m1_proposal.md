@@ -1,8 +1,3 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
 ## Section 1: Motivation and Purpose
 
 > **Our role:** Data scientist consultancy firm
