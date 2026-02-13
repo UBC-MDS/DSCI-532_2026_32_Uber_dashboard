@@ -1,4 +1,4 @@
-name: dsci-532_2026_uber_dashboard
+name: dsci-532_2026_32_Uber_dashboard
 channels:
   - conda-forge
 dependencies:
