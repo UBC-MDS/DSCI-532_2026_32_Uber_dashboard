@@ -5,7 +5,15 @@ from ridgeplot import ridgeplot
 from shinywidgets import render_plotly, render_widget, output_widget
 import pandas as pd
 
-uber = pd.read_csv(r"..\data\raw\ncr_ride_bookings.csv")
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# CSV is in ../data/raw/ relative to src/
+csv_path = os.path.join(BASE_DIR, "..", "data", "raw", "ncr_ride_bookings.csv")
+
+# Read CSV
+uber = pd.read_csv(csv_path)
 uber["Date"] = pd.to_datetime(uber["Date"]).dt.date
 uber.columns = uber.columns.str.replace(' ', '_')
 
