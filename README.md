@@ -28,7 +28,7 @@ conda env create -f environment.yml
 4.  Once the environment is created, activate it with:
 
 ``` bash
-conda activate ddsci-532_2026_32_Uber_dashboard
+conda activate dsci-532_2026_32_Uber_dashboard
 ```
 
 5.  Run the app locally with:
