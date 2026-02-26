@@ -4,10 +4,10 @@ from shinywidgets import render_plotly, output_widget
 import pandas as pd
 import os
 
+# ---------------- DATA ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 csv_path = os.path.join(BASE_DIR, "..", "data", "raw", "ncr_ride_bookings.csv")
 
-# Read CSV
 uber = pd.read_csv(csv_path)
 uber["Date"] = pd.to_datetime(uber["Date"]).dt.date
 uber.columns = uber.columns.str.replace(' ', '_')
@@ -22,7 +22,7 @@ app_ui = ui.page_fluid(
             line-height: 1.1;
         }
         .shiny-value-box .card-title {
-            font-size: 0.65em;
+            font-size: 0.7em;
             margin-bottom: 0.2rem;
         }
         .shiny-columns {
@@ -30,9 +30,11 @@ app_ui = ui.page_fluid(
         }
     """),
 
-    ui.panel_title("Uber Data Visualization"),
+    ui.panel_title("Uber Data Visualization Dashboard"),
 
     ui.layout_sidebar(
+
+        # ---------------- SIDEBAR ----------------
         ui.sidebar(
             ui.input_slider(
                 id="slider",
@@ -41,13 +43,22 @@ app_ui = ui.page_fluid(
                 max=uber.Date.max(),
                 value=[uber.Date.min(), uber.Date.max()],
             ),
+
+            ui.input_selectize(
+                id="vehicle_type",
+                label="Select Vehicle Type",
+                choices=["All"] + sorted(uber["Vehicle_Type"].unique().tolist()),
+                selected="All",
+                multiple=True,
+                options={"placeholder": "Choose vehicle type(s)"},
+            ),
+
             ui.input_action_button("action_button", "Reset filter"),
-            open="desktop",
+            
         ),
 
+        # ---------------- MAIN CONTENT ----------------
         ui.layout_columns(
-
-            # Value boxes
             [
                 ui.layout_columns(
                     ui.value_box("Total Bookings", ui.output_text("total_bookings")),
@@ -56,22 +67,17 @@ app_ui = ui.page_fluid(
                     col_widths=[4, 4, 4],
                 )
             ],
-
-            # Pie chart
             [
                 output_widget("pie_chart")
             ],
-
             col_widths=[6, 6],
         ),
 
-        ui.output_ui("vehicle_select_ui"),
-
         ui.layout_columns(
             ui.card(
-                ui.card_header("Average Customer Rating by Vehicle Type"),
-                output_widget("rating_barplot"),
-                full_screen=True,
+                ui.card_header("Average Driver Rating by Vehicle Type"),
+                output_widget("rating_dotplot"),
+            
             ),
             ui.card(
                 ui.card_header("Total Booking Value Over Time"),
@@ -86,103 +92,150 @@ app_ui = ui.page_fluid(
 # ---------------- SERVER ----------------
 def server(input, output, session):
 
-    # Date filter
+    # Single reactive data source (affects whole dashboard)
     @reactive.calc
     def filtered_data():
-        idx = uber.Date.between(
-            left=input.slider()[0],
-            right=input.slider()[1],
-            inclusive="both",
-        )
-        return uber[idx]
+        df = uber[
+            uber.Date.between(
+                input.slider()[0],
+                input.slider()[1],
+                inclusive="both",
+            )
+        ]
 
-    # Vehicle filter logic (clean reusable filter)
-    def apply_vehicle_filter(df):
         selected = input.vehicle_type()
+
         if selected and "All" not in selected:
             df = df[df.Vehicle_Type.isin(selected)]
-        return df
 
-    # Value boxes
+        return df
+    @reactive.calc
+    def filtered_data_date_only():
+        return uber[
+            uber.Date.between(
+                input.slider()[0],
+                input.slider()[1],
+                inclusive="both",
+            )
+        ]
+
+    # Inside server:
+    @reactive.Effect
+    def reset_filters():
+        # Trigger when button is clicked
+        if input.action_button() > 0:  # >0 ensures it triggers only on click
+            # Reset slider to full date range
+            ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
+            
+            # Reset vehicle dropdown to "All"
+            ui.update_selectize("vehicle_type", selected=["All"])
+    # ---------------- VALUE BOXES ----------------
     @render.text
     def total_bookings():
-        return f"{apply_vehicle_filter(filtered_data()).shape[0]}"
+        return f"{filtered_data().shape[0]:,}"
 
     @render.text
     def total_revenue():
-        bill = apply_vehicle_filter(filtered_data()).Booking_Value.sum()
-        return f"${bill:.2f}"
+        total = filtered_data().Booking_Value.sum()
+        return f"${total:,.0f}"
 
     @render.text
     def canceled_bookings():
-        df = apply_vehicle_filter(filtered_data())
+        df = filtered_data()
         count = df[df.Cancelled_Rides_by_Driver == 1].shape[0]
         count += df[df.Cancelled_Rides_by_Customer == 1].shape[0]
-        return f"{count}"
+        return f"{count:,}"
 
-    # Dropdown (Selectize) with "All"
-    @output
-    @render.ui
-    def vehicle_select_ui():
+    # ---------------- DOT PLOT ----------------
+    @render_plotly
+    def rating_dotplot():
         df = filtered_data()
-        vehicle_choices = sorted(df["Vehicle_Type"].unique().tolist())
-        vehicle_choices = ["All"] + vehicle_choices
 
-        return ui.input_selectize(
-            id="vehicle_type",
-            label="Select Vehicle Type",
-            choices=vehicle_choices,
-            selected="All",
-            multiple=True,
-            options={"placeholder": "Choose vehicle type(s)"},
+        avg_rating = (
+            df.groupby("Vehicle_Type")["Driver_Ratings"]
+            .mean()
+            .reset_index()
+            .sort_values("Vehicle_Type", ascending=False)
         )
 
-    # Bar plot
-    @render_plotly
-    def rating_barplot():
-        df = apply_vehicle_filter(filtered_data())
-        avg_rating = df.groupby("Vehicle_Type")[""].mean().reset_index()
-
-        fig = px.bar(
+        fig = px.scatter(
             avg_rating,
-            x="Vehicle_Type",
-            y="Driver_Ratings",
+            x="Driver_Ratings",
+            y="Vehicle_Type",
             text="Driver_Ratings",
-            title="Average Driver Rating by Vehicle Type",
             labels={
-                "Driver_Rating": "Avg Driver Rating",
+                "Driver_Ratings": "Average Rating",
                 "Vehicle_Type": "Vehicle Type",
             },
+            size=[14] * len(avg_rating),
         )
 
-        fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-        fig.update_layout(yaxis_range=[0, 5])
+        fig.update_traces(
+            texttemplate="%{text:.3f}",
+            textposition="middle right"
+        )
+
+        min_rating = avg_rating["Driver_Ratings"].min()
+        max_rating = avg_rating["Driver_Ratings"].max()
+
+        fig.update_layout(
+            xaxis_range=[min_rating - 0.02, max_rating + 0.02],
+            xaxis_title="Average Rating",
+            yaxis_title="Vehicle Type",           
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            xaxis=dict(showgrid=True,       
+                        gridcolor="lightgray",  
+                        gridwidth=1,        
+                        zeroline=False), 
+            yaxis=dict(showgrid=True,
+                       gridcolor="lightgray",  
+                       gridwidth=1,        
+                       zeroline=False),
+        )
+
         return fig
 
-    # Line chart
+    # ---------------- LINE CHART ----------------
     @render_plotly
     def line_chart():
-        df = apply_vehicle_filter(filtered_data())
+        df = filtered_data()
+
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
 
         fig = px.line(
             df_agg,
             x="Date",
             y="Booking_Value",
-            title="Total Booking Value Over Time",
             labels={
                 "Booking_Value": "Total Booking Value",
                 "Date": "Date",
             },
         )
 
-        fig.update_layout(xaxis_title="Date", yaxis_title="Total Booking Value")
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Total Booking Value",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            xaxis=dict(showgrid=True,
+                       gridcolor="lightgray",  
+                       gridwidth=1,        
+                       zeroline=False), 
+            yaxis=dict(showgrid=True,
+                       gridcolor="lightgray",  
+                       gridwidth=1,        
+                       zeroline=False),
+        )
+
         return fig
 
-    # Pie chart
+    # ---------------- PIE CHART ----------------
     @render_plotly
     def pie_chart():
-        df = apply_vehicle_filter(filtered_data())
+        # Only filtered by date, ignore vehicle type
+        df = filtered_data_date_only()
+
         revenue_by_vehicle_type = (
             df.groupby("Vehicle_Type")["Booking_Value"]
             .sum()
@@ -193,11 +246,13 @@ def server(input, output, session):
             revenue_by_vehicle_type,
             names="Vehicle_Type",
             values="Booking_Value",
-            title="Revenue by Vehicle Type",
+            title="Revenue by Vehicle Type (All Vehicles)", 
+            color_discrete_sequence=px.colors.qualitative.Set2  # color-blind friendly palette
+
         )
 
         return fig
 
 
-# Create app
+# ---------------- APP ----------------
 app = App(app_ui, server)
