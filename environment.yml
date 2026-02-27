@@ -5,20 +5,15 @@ dependencies:
   - python>=3.12
   - pip
   - pandas
-  - numpy
   - matplotlib
   - seaborn
-  - plotly
-  - jupyterlab
-  - notebook
   - ipykernel
-  - scikit-learn
-  - scipy
-  - ridgeplot
 
   - pip:
-      - shiny
-      - shinywidgets
-      - faicons
-      - uvicorn
-      - kagglehub
+      - shiny==1.5.1
+      - shinywidgets==0.7.1
+      - plotly==6.5.2
+      - pandas==3.0.1
+      - python-dateutil==2.9.0.post0
+      - uvicorn==0.41.0
+      - kagglehub==1.0.0
