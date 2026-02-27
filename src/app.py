@@ -184,7 +184,7 @@ def server(input, output, session):
     @render.text
     def total_revenue():
         total = filtered_data().Booking_Value.sum()
-        return f"${total:,.2f}"
+        return f"{total:,.2f}"
 
     @render.text
     def canceled_bookings():
