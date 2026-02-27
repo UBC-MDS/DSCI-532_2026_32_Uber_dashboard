@@ -9,8 +9,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 csv_path = os.path.join(BASE_DIR, "..", "data", "raw", "ncr_ride_bookings.csv")
 
 uber = pd.read_csv(csv_path)
-uber["Date"] = pd.to_datetime(uber["Date"]).dt.date
 uber.columns = uber.columns.str.replace(' ', '_')
+uber["Date"] = pd.to_datetime(uber["Date"]).dt.date
+uber['Issue_Reason'] = (uber['Reason_for_cancelling_by_Customer']
+                        .fillna(uber['Driver_Cancellation_Reason'])
+                        .fillna(uber['Incomplete_Rides_Reason'])
+                        .fillna('')
+                        )
 
 # ---------------- UI ----------------
 app_ui = ui.page_fluid(
@@ -126,13 +131,17 @@ app_ui = ui.page_fluid(
         ui.layout_columns(
             ui.card(
                 ui.card_header("Average Driver Rating by Vehicle Type"),
-                output_widget("rating_dotplot"),
+                output_widget("rating_dotplot")
             ),
             ui.card(
                 ui.card_header("Total Booking Value Over Time"),
-                output_widget("line_chart"),
+                output_widget("line_chart")
             ),
-            col_widths=[6, 6],
+            ui.card(
+                ui.card_header("Booking Status Breakdown"),
+                output_widget("sunburst_chart")
+            ),
+            col_widths=[4, 4, 4],
         ),
     ),
 )
@@ -281,6 +290,27 @@ def server(input, output, session):
 
         fig.update_traces(textinfo="percent+label")
 
+        fig.update_traces(textinfo="percent+label")
+
+        return fig
+
+    # ---------------- SUNBURST  CHART ----------------
+    @render_plotly
+    def sunburst_chart():
+        booking_status = (
+            filtered_data()
+            .groupby(['Booking_Status', 'Issue_Reason'])
+            .agg(counts=('Issue_Reason', 'size'))
+            .reset_index()
+        )
+
+        fig = px.sunburst(
+            booking_status,
+            path=["Booking_Status", "Issue_Reason"],
+            values="counts",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+        fig.update_traces(textinfo="label+percent entry")
         return fig
 
 
