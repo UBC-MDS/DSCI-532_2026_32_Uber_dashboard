@@ -110,7 +110,7 @@ app_ui = ui.page_fluid(
                 ui.value_box(
                     "Canceled Bookings",
                     ui.output_text("canceled_bookings"),
-                    showcase=ui.HTML('<i class="fa-solid fa-ban fa-2x"></i>'),
+                    showcase=ui.HTML('<i class="fa-solid fa-handshake-slash"></i>'),
                     theme="gradient-box",
                 ),
                 col_widths=[4, 5, 4],
