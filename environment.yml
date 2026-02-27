@@ -5,17 +5,18 @@ dependencies:
   - python>=3.12
   - pip
   - pandas
-  - numpy
   - matplotlib
   - seaborn
-  - plotly
+  - ipykernel
   - ridgeplot
   - openai
   - anthropic
 
   - pip:
-      - shiny
-      - shinywidgets
-      - faicons
-      - uvicorn
-      - kagglehub
+      - openai==2.24.0
+      - pandas==3.0.1
+      - plotly==6.5.2
+      - shiny==1.5.1
+      - shinychat==0.2.9
+      - shinywidgets==0.7.1
+      - uvicorn==0.41.0
