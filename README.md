@@ -36,3 +36,17 @@ conda activate dsci-532_2026_32_Uber_dashboard
 ``` bash
 shiny run src/app.py 
 ```
+This will start the Shiny app, and you can access it in your web browser. The dashboard will allow you to explore Uber's 2024 ride data through interactive visualizations and KPIs. If you'd like to contribute check out: https://github.com/UBC-MDS/DSCI-532_2026_32_Uber_dashboard/blob/dev/CONTRIBUTING.md
+## Deployment
+The dashboard is deployed on posit cloud, and the preview build version can be accessed at the following URL: https://connect.posit.cloud/mhmdjamaal/content/019c971c-d6e1-ea4b-e7f0-51dd28d2e695 .The stable build version can be accessed at the following URL: https://connect.posit.cloud/mhmdjamaal/content/019c971b-439c-25a1-e1b2-febc606b69b6 . This allows users to interact with the dashboard without needing to run it locally, providing easy access to the insights derived from Uber's 2024 ride data.
+
+
+## Demo
+![App Demo](img/demo.gif)
+
+
+
+
+
+
+
