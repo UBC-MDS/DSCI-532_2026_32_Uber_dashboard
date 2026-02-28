@@ -9,6 +9,7 @@
 | 3   | When James analyzes booking cancellations, he wants to see canceled bookings within the selected filters so he can assess operational inefficiencies such that he can improve conversion from booking to rides. | ✅ Implemented |  Uses  filtered dataset.  |
 | 4   | When James evaluates seasonality and booking trends, he wants to visualize total booking value over time so he can identify seasonal demand patterns. | ✅ Implemented  |  Line chart reflects both date and vehicle filters.  |
 | 5   | When James evaluates service quality across vehicle categories, he wants to compare average driver ratings by vehicle type so he can monitor customer satisfaction trends. | ✅ Implemented  |  New job story added for driver rating dot plot. |
+| 6   | When James analyzes operational issues, he wants to visualize booking status and cancellation reasons hierarchically so he can understand the distribution of ride outcomes and underlying causes. | ✅ Implemented | New sunburst chart added  | 
 
 ## Section 2: Component Inventory
 
@@ -25,6 +26,7 @@
 | `rating_dotplot` |	Output	  | `@render_plotly`        |  	`filtered_data`        	   | #5 |
 | `line_chart`  |	Output	      | `@render_plotly`        | 	`filtered_data`	           | #4 |
 | `pie_chart`   |	Output	      | `@render_plotly`        |   `filtered_data_date_only`	 | #2 |
+| `sunburst_chart`   |	Output	| `@render_plotly`        |   `filtered_data`	           | #6 |
 
 ## Section 3: Reactivity Diagram
 
@@ -39,6 +41,7 @@ flowchart TD
   F --> T3([canceled_bookings])
   F --> P1([rating_dotplot])
   F --> P2([line_chart])
+  F --> P4([sunburst_chart])
 
   G --> P3([pie_chart])
 ```
@@ -53,8 +56,6 @@ The filtered DataFrame is then used across most dashboard components with the fo
 2) The `@reactive.calc` element `filtered_data_date_only` only depends on the slider (date range). It performs the following transfromation:
 filters rows to the selected date range. The filtered DataFrame is then used to create a pie chart showcasing split of revenue across vehicle types with the only output consuming it 
 being `pie_chart`.
-
-
 
 
 
