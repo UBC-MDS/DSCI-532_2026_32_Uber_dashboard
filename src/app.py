@@ -116,15 +116,16 @@ app_ui = ui.page_fillable(
                         theme="gradient-box",
                         height="260px",
                     ),
-                    col_widths=[4, 4, 4],
-                    style="height: 260px;",
+                    col_widths=[3, 5, 4],
+                    style="height: 260px; gap:4px;",
+                    
                 ),
                 ui.div(
                     output_widget("pie_chart"),
                     style="height: 260px;",
                 ),
                 col_widths=[6, 6],
-                style="height: 260px;",
+                style="height: 260px; gap:4px;",
             ),
             style="flex: 0 0 45%; min-height: 0;",
         ),
@@ -150,7 +151,7 @@ app_ui = ui.page_fillable(
                 ),
                 col_widths=[4, 4, 4],
                 fill=True,
-                style="height: 100%;",
+                style="height: 100%; gap:4px;",
             ),
             style="flex: 0 0 55%; min-height: 0;",
         ),
@@ -257,11 +258,17 @@ def server(input, output, session):
         fig = px.pie(
             revenue_by_vehicle_type, names="Vehicle_Type", values="Booking_Value",
             color_discrete_sequence=px.colors.qualitative.Set2,
+            title="Revenue Distribution by Vehicle Type" 
         )
         fig.update_traces(textinfo="percent+label", domain=dict(x=[0, 0.6]))
         fig.update_layout(
-            margin=dict(l=10, r=10, t=10, b=10),
+            margin=dict(l=10, r=10, t=40, b=10),  
             height=260,
+            title=dict(
+                x=0.5,               # center title
+                xanchor="center",
+                font=dict(size=14, family="Arial", color="black")
+            ),
             legend=dict(
                 orientation="v",
                 x=0.62,
