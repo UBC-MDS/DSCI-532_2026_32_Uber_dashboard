@@ -17,8 +17,21 @@ uber['Issue_Reason'] = (uber['Reason_for_cancelling_by_Customer']
                         .fillna('')
                         )
 
+# ---------------- HELPER FUNCTION ----------------
+def human_format(num):
+    """Convert large numbers to human-readable format (K, M, B)"""
+    num = float(num)
+    if abs(num) >= 1_000_000_000:
+        return f"{num/1_000_000_000:.0f}B"
+    elif abs(num) >= 1_000_000:
+        return f"{num/1_000_000:.0f}M"
+    elif abs(num) >= 1_000:
+        return f"{num/1_000:.0f}K"
+    else:
+        return f"{num:.0f}"
+
 # ---------------- UI ----------------
-app_ui = ui.page_fillable(                              
+app_ui = ui.page_fillable(
     ui.tags.link(
         rel="stylesheet",
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -26,8 +39,36 @@ app_ui = ui.page_fillable(
 
     # ---------- Styling ----------
     ui.tags.style("""
-        html, body { height: 100%; overflow: hidden; }   /* no scroll */
+        /* Reset box sizing */
+        * { box-sizing: border-box; }
 
+        /* Prevent horizontal scrolling */
+        html, body {
+            width: 100%;
+            overflow-x: hidden !important;
+            overflow-y: auto;
+        }
+
+        body { max-width: 100%; }
+
+        /* Sidebar, columns, cards, value boxes, slider, Plotly */
+        .ui-layout-sidebar, .ui-layout-columns, .ui-card, .shiny-value-box, 
+        .irs, .irs--shiny, .plotly-graph-div {
+            max-width: 100%;
+            overflow-x: hidden !important;
+        }
+
+        /* Sidebar slider full width */
+        .form-group, #slider, .irs, .irs--shiny {
+            width: 100% !important;
+        }
+
+        /* Force columns to wrap if needed */
+        .ui-layout-sidebar > .ui-sidebar-content {
+            flex-wrap: wrap;
+        }
+
+        /* Value box styling */
         .shiny-value-box {
             border-radius: 16px;
             padding: 20px;
@@ -36,23 +77,29 @@ app_ui = ui.page_fillable(
         }
         .shiny-value-box:hover { transform: translateY(-4px); }
 
+        /* Smaller font size for numbers in value boxes */
         .shiny-value-box .card-body {
-            font-size: 32px;
+            font-size: 24px;
             font-weight: 700;
             text-align: center;
         }
+
+        /* Smaller font for card titles */
         .shiny-value-box .card-title {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             opacity: 0.85;
             text-align: center;
         }
+
         .gradient-box {
             background: linear-gradient(135deg, #4F46E5, #3B82F6);
             color: white;
         }
+
         .card-header { font-size: 12px; padding: 6px 10px; }
         .card { margin-bottom: 0 !important; }
+
     """),
 
     # ---------- Title ----------
@@ -68,6 +115,7 @@ app_ui = ui.page_fillable(
         """
     ),
 
+    # ---------- Layout ----------
     ui.layout_sidebar(
         # ---------------- SIDEBAR ----------------
         ui.sidebar(
@@ -87,13 +135,13 @@ app_ui = ui.page_fillable(
                 options={"placeholder": "Choose vehicle type(s)"},
             ),
             ui.input_action_button("action_button", "Reset filter"),
-            width=220,                           
+            width=250,
         ),
 
         # ---------------- MAIN CONTENT ----------------
         ui.div(
             ui.layout_columns(
-                # ----- Row 1: Value Boxes + Pie -----
+                # ----- Row 1 -----
                 ui.layout_columns(
                     ui.value_box(
                         "Total Bookings",
@@ -116,28 +164,30 @@ app_ui = ui.page_fillable(
                         theme="gradient-box",
                         height="260px",
                     ),
-                    col_widths=[3, 5, 4],
-                    style="height: 260px; gap:4px;",
-                    
+                    col_widths=[3,5,4],
+                    style="height:260px; gap:4px;",
                 ),
-                ui.div(
+
+                ui.card(
+                    ui.card_header("Revenue Distribution by Vehicle Type"),
                     output_widget("pie_chart"),
-                    style="height: 260px;",
+                    fill=True,
+                    full_screen=False,
                 ),
-                col_widths=[6, 6],
-                style="height: 260px; gap:4px;",
+
+                col_widths=[6,6],
+                style="height:260px; gap:4px;",
             ),
-            style="flex: 0 0 45%; min-height: 0;",
+            style="flex:0 0 45%; min-height:0;",
         ),
 
-        # ----- Row 2: Three Charts -----
+        # ----- Row 2 -----
         ui.div(
             ui.layout_columns(
                 ui.card(
                     ui.card_header("Avg Driver Rating by Vehicle Type"),
                     output_widget("rating_dotplot"),
                     fill=True,
-                    full_screen=False,
                 ),
                 ui.card(
                     ui.card_header("Total Booking Value Over Time"),
@@ -149,11 +199,11 @@ app_ui = ui.page_fillable(
                     output_widget("sunburst_chart"),
                     fill=True,
                 ),
-                col_widths=[4, 4, 4],
+                col_widths=[4,4,4],
                 fill=True,
-                style="height: 100%; gap:4px;",
+                style="height:100%; gap:4px;",
             ),
-            style="flex: 0 0 55%; min-height: 0;",
+            style="flex:0 0 55%; min-height:0;",
         ),
 
         fillable=True,
@@ -186,14 +236,14 @@ def server(input, output, session):
             ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
             ui.update_selectize("vehicle_type", selected=["All"])
 
-    # ---------------- VALUE BOXES ----------------
+    # VALUE BOXES
     @render.text
     def total_bookings():
-        return f"{filtered_data().shape[0]:,}"
+        return human_format(filtered_data().shape[0])
 
     @render.text
     def total_revenue():
-        return f"{filtered_data().Booking_Value.sum():,.2f}"
+        return human_format(filtered_data().Booking_Value.sum())
 
     @render.text
     def canceled_bookings():
@@ -202,9 +252,9 @@ def server(input, output, session):
             df[df.Cancelled_Rides_by_Driver == 1].shape[0]
             + df[df.Cancelled_Rides_by_Customer == 1].shape[0]
         )
-        return f"{count:,}"
+        return human_format(count)
 
-    # ---------------- DOT PLOT ----------------
+    # DOT PLOT
     @render_plotly
     def rating_dotplot():
         df = filtered_data()
@@ -225,30 +275,25 @@ def server(input, output, session):
         fig.update_layout(
             xaxis_range=[min_r - 0.02, max_r + 0.02],
             plot_bgcolor="white", paper_bgcolor="white",
-            margin=dict(l=10, r=10, t=10, b=10),        # ← tight margins
-            xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
-            yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
+            margin=dict(l=10,r=10,t=10,b=10),
+            xaxis=dict(showgrid=True, gridcolor="lightgray"),
+            yaxis=dict(showgrid=True, gridcolor="lightgray"),
         )
         return fig
 
-    # ---------------- LINE CHART ----------------
+    # LINE CHART
     @render_plotly
     def line_chart():
         df = filtered_data()
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
-        fig = px.line(
-            df_agg, x="Date", y="Booking_Value",
-            labels={"Booking_Value": "Total Booking Value", "Date": "Date"},
-        )
+        fig = px.line(df_agg, x="Date", y="Booking_Value")
         fig.update_layout(
             plot_bgcolor="white", paper_bgcolor="white",
-            margin=dict(l=10, r=10, t=10, b=10),
-            xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
-            yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
+            margin=dict(l=10,r=10,t=10,b=10),
         )
         return fig
 
-    # ---------------- PIE CHART ----------------
+    # PIE CHART
     @render_plotly
     def pie_chart():
         df = filtered_data_date_only()
@@ -256,47 +301,40 @@ def server(input, output, session):
             df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
         )
         fig = px.pie(
-            revenue_by_vehicle_type, names="Vehicle_Type", values="Booking_Value",
+            revenue_by_vehicle_type,
+            names="Vehicle_Type",
+            values="Booking_Value",
             color_discrete_sequence=px.colors.qualitative.Set2,
-            title="Revenue Distribution by Vehicle Type" 
         )
-        fig.update_traces(textinfo="percent+label", domain=dict(x=[0, 0.6]))
+        fig.update_traces(
+            textinfo="percent+label",
+            textposition="inside"
+        )
         fig.update_layout(
-            margin=dict(l=10, r=10, t=40, b=10),  
-            height=260,
-            title=dict(
-                x=0.5,               # center title
-                xanchor="center",
-                font=dict(size=14, family="Arial", color="black")
-            ),
-            legend=dict(
-                orientation="v",
-                x=0.62,
-                y=0.5,
-                xanchor="left",
-                yanchor="middle",
-            ),
+            showlegend=False,
+            margin=dict(l=0,r=0,t=10,b=0),
+            autosize=True
         )
         return fig
 
-    # ---------------- SUNBURST CHART ----------------
+    # SUNBURST
     @render_plotly
     def sunburst_chart():
         booking_status = (
             filtered_data()
-            .groupby(['Booking_Status', 'Issue_Reason'])
-            .agg(counts=('Issue_Reason', 'size'))
+            .groupby(['Booking_Status','Issue_Reason'])
+            .agg(counts=('Issue_Reason','size'))
             .reset_index()
         )
         fig = px.sunburst(
-            booking_status, path=["Booking_Status", "Issue_Reason"],
+            booking_status,
+            path=["Booking_Status","Issue_Reason"],
             values="counts",
             color_discrete_sequence=px.colors.qualitative.Set2,
         )
         fig.update_traces(textinfo="label+percent entry")
-        fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
+        fig.update_layout(margin=dict(l=10,r=10,t=10,b=10))
         return fig
-
 
 # ---------------- APP ----------------
 app = App(app_ui, server)
