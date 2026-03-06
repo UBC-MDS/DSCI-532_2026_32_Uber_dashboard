@@ -3,6 +3,10 @@ import plotly.express as px
 from shinywidgets import render_plotly, output_widget
 import pandas as pd
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+import querychat
+from chatlas import ChatGithub
 
 # ---------------- DATA ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,149 +20,174 @@ uber['Issue_Reason'] = (uber['Reason_for_cancelling_by_Customer']
                         .fillna(uber['Incomplete_Rides_Reason'])
                         .fillna('')
                         )
+# ---------------- querychat setup ----------------
+# Load .env from the same directory
+load_dotenv(Path(__file__).parent / ".env")
+
+qc = querychat.QueryChat(
+    uber,
+    "uber",
+    client=ChatGithub(model="gpt-4.1-mini"),
+)
 
 # ---------------- UI ----------------
-app_ui = ui.page_fillable(                              
-    ui.tags.link(
-        rel="stylesheet",
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    ),
-
-    # ---------- Styling ----------
-    ui.tags.style("""
-        html, body { height: 100%; overflow: hidden; }   /* no scroll */
-
-        .shiny-value-box {
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-            transition: transform 0.2s ease;
-        }
-        .shiny-value-box:hover { transform: translateY(-4px); }
-
-        .shiny-value-box .card-body {
-            font-size: 32px;
-            font-weight: 700;
-            text-align: center;
-        }
-        .shiny-value-box .card-title {
-            font-size: 14px;
-            font-weight: 500;
-            opacity: 0.85;
-            text-align: center;
-        }
-        .gradient-box {
-            background: linear-gradient(135deg, #4F46E5, #3B82F6);
-            color: white;
-        }
-        .card-header { font-size: 12px; padding: 6px 10px; }
-        .card { margin-bottom: 0 !important; }
-    """),
-
-    # ---------- Title ----------
-    ui.div(
-        "Uber Data Visualization Dashboard",
-        style="""
-            font-size: 20px;
-            font-weight: 800;
-            color: black;
-            text-align: center;
-            padding: 6px 0;
-            text-shadow: 1px 2px 6px rgba(0,0,0,0.15);
-        """
-    ),
-
-    ui.layout_sidebar(
-        # ---------------- SIDEBAR ----------------
-        ui.sidebar(
-            ui.input_slider(
-                id="slider",
-                label="Date range",
-                min=uber.Date.min(),
-                max=uber.Date.max(),
-                value=[uber.Date.min(), uber.Date.max()],
+app_ui = ui.page_fluid(
+    ui.navset_tab(
+        ui.nav_panel("Original Dashboard",            
+            ui.tags.link(
+                rel="stylesheet",
+                href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
             ),
-            ui.input_selectize(
-                id="vehicle_type",
-                label="Select Vehicle Type",
-                choices=["All"] + sorted(uber["Vehicle_Type"].unique().tolist()),
-                selected="All",
-                multiple=True,
-                options={"placeholder": "Choose vehicle type(s)"},
-            ),
-            ui.input_action_button("action_button", "Reset filter"),
-            width=220,                           
-        ),
 
-        # ---------------- MAIN CONTENT ----------------
-        ui.div(
-            ui.layout_columns(
-                # ----- Row 1: Value Boxes + Pie -----
-                ui.layout_columns(
-                    ui.value_box(
-                        "Total Bookings",
-                        ui.output_text("total_bookings"),
-                        showcase=ui.HTML('<i class="fa-solid fa-car fa-lg"></i>'),
-                        theme="total-bookings-box",
-                        height="260px",
+            # ---------- Styling ----------
+            ui.tags.style("""
+                html, body { height: 100%; overflow: hidden; }   /* no scroll */
+
+                .shiny-value-box {
+                    border-radius: 16px;
+                    padding: 20px;
+                    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+                    transition: transform 0.2s ease;
+                }
+                .shiny-value-box:hover { transform: translateY(-4px); }
+
+                .shiny-value-box .card-body {
+                    font-size: 32px;
+                    font-weight: 700;
+                    text-align: center;
+                }
+                .shiny-value-box .card-title {
+                    font-size: 14px;
+                    font-weight: 500;
+                    opacity: 0.85;
+                    text-align: center;
+                }
+                .gradient-box {
+                    background: linear-gradient(135deg, #4F46E5, #3B82F6);
+                    color: white;
+                }
+                .card-header { font-size: 12px; padding: 6px 10px; }
+                .card { margin-bottom: 0 !important; }
+            """),
+
+            # ---------- Title ----------
+            ui.div(
+                "Uber Data Visualization Dashboard",
+                style="""
+                    font-size: 20px;
+                    font-weight: 800;
+                    color: black;
+                    text-align: center;
+                    padding: 6px 0;
+                    text-shadow: 1px 2px 6px rgba(0,0,0,0.15);
+                """
+            ),
+
+            ui.layout_sidebar(
+                # ---------------- SIDEBAR ----------------
+                ui.sidebar(
+                    ui.input_slider(
+                        id="slider",
+                        label="Date range",
+                        min=uber.Date.min(),
+                        max=uber.Date.max(),
+                        value=[uber.Date.min(), uber.Date.max()],
                     ),
-                    ui.value_box(
-                        "Total Revenue",
-                        ui.output_text("total_revenue"),
-                        showcase=ui.HTML('<i class="fa-solid fa-dollar-sign fa-lg"></i>'),
-                        theme="gradient-box",
-                        height="260px",
+                    ui.input_selectize(
+                        id="vehicle_type",
+                        label="Select Vehicle Type",
+                        choices=["All"] + sorted(uber["Vehicle_Type"].unique().tolist()),
+                        selected="All",
+                        multiple=True,
+                        options={"placeholder": "Choose vehicle type(s)"},
                     ),
-                    ui.value_box(
-                        "Canceled Bookings",
-                        ui.output_text("canceled_bookings"),
-                        showcase=ui.HTML('<i class="fa-solid fa-handshake-slash fa-lg"></i>'),
-                        theme="gradient-box",
-                        height="260px",
-                    ),
-                    col_widths=[3, 5, 4],
-                    style="height: 260px; gap:4px;",
-                    
+                    ui.input_action_button("action_button", "Reset filter"),
+                    width=220,                           
                 ),
+
+                # ---------------- MAIN CONTENT ----------------
                 ui.div(
-                    output_widget("pie_chart"),
-                    style="height: 260px;",
+                    ui.layout_columns(
+                        # ----- Row 1: Value Boxes + Pie -----
+                        ui.layout_columns(
+                            ui.value_box(
+                                "Total Bookings",
+                                ui.output_text("total_bookings"),
+                                showcase=ui.HTML('<i class="fa-solid fa-car fa-lg"></i>'),
+                                theme="total-bookings-box",
+                                height="260px",
+                            ),
+                            ui.value_box(
+                                "Total Revenue",
+                                ui.output_text("total_revenue"),
+                                showcase=ui.HTML('<i class="fa-solid fa-dollar-sign fa-lg"></i>'),
+                                theme="gradient-box",
+                                height="260px",
+                            ),
+                            ui.value_box(
+                                "Canceled Bookings",
+                                ui.output_text("canceled_bookings"),
+                                showcase=ui.HTML('<i class="fa-solid fa-handshake-slash fa-lg"></i>'),
+                                theme="gradient-box",
+                                height="260px",
+                            ),
+                            col_widths=[3, 5, 4],
+                            style="height: 260px; gap:4px;",
+                            
+                        ),
+                        ui.div(
+                            output_widget("pie_chart"),
+                            style="height: 260px;",
+                        ),
+                        col_widths=[6, 6],
+                        style="height: 260px; gap:4px;",
+                    ),
+                    style="flex: 0 0 45%; min-height: 0;",
                 ),
-                col_widths=[6, 6],
-                style="height: 260px; gap:4px;",
-            ),
-            style="flex: 0 0 45%; min-height: 0;",
-        ),
 
-        # ----- Row 2: Three Charts -----
-        ui.div(
-            ui.layout_columns(
-                ui.card(
-                    ui.card_header("Avg Driver Rating by Vehicle Type"),
-                    output_widget("rating_dotplot"),
-                    fill=True,
-                    full_screen=False,
+                # ----- Row 2: Three Charts -----
+                ui.div(
+                    ui.layout_columns(
+                        ui.card(
+                            ui.card_header("Avg Driver Rating by Vehicle Type"),
+                            output_widget("rating_dotplot"),
+                            fill=True,
+                            full_screen=False,
+                        ),
+                        ui.card(
+                            ui.card_header("Total Booking Value Over Time"),
+                            output_widget("line_chart"),
+                            fill=True,
+                        ),
+                        ui.card(
+                            ui.card_header("Booking Status Breakdown"),
+                            output_widget("sunburst_chart"),
+                            fill=True,
+                        ),
+                        col_widths=[4, 4, 4],
+                        fill=True,
+                        style="height: 100%; gap:4px;",
+                    ),
+                    style="flex: 0 0 55%; min-height: 0;",
                 ),
-                ui.card(
-                    ui.card_header("Total Booking Value Over Time"),
-                    output_widget("line_chart"),
-                    fill=True,
-                ),
-                ui.card(
-                    ui.card_header("Booking Status Breakdown"),
-                    output_widget("sunburst_chart"),
-                    fill=True,
-                ),
-                col_widths=[4, 4, 4],
-                fill=True,
-                style="height: 100%; gap:4px;",
-            ),
-            style="flex: 0 0 55%; min-height: 0;",
-        ),
 
-        fillable=True,
-        style="display:flex; flex-direction:column; gap:6px;",
-    ),
+                fillable=True,
+                style="display:flex; flex-direction:column; gap:6px;",
+            )
+        ),
+        ui.nav_panel("AI-Powered Dashboard",
+            ui.page_sidebar(
+                qc.sidebar(),
+                ui.card(
+                    ui.card_header(ui.output_text("title")),
+                    ui.output_data_frame("data_table"),
+                    fill=True,
+                ),
+                fillable=True,
+                title="Uber AI-Powered Dashboard",
+            )
+        ),
+    )
 )
 
 # ---------------- SERVER ----------------
@@ -296,6 +325,18 @@ def server(input, output, session):
         fig.update_traces(textinfo="label+percent entry")
         fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
         return fig
+    
+    # ---------------- QUERYCHAT ----------------
+    # Adapted from https://github.com/UBC-MDS/DSCI_532_vis-2_book/blob/main/code/lecture05/app-07-querychat.py
+    qc_vals = qc.server()
+
+    @render.text
+    def title():
+        return qc_vals.title() or "Uber Rides dataset"
+
+    @render.data_frame
+    def data_table():
+        return qc_vals.df()
 
 
 # ---------------- APP ----------------
