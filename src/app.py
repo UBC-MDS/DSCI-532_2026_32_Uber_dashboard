@@ -246,7 +246,7 @@ app_ui = ui.page_fluid(
                             )
                         ]),
                         ui.output_data_frame("qc_data_table"),
-                        style="margin-bottom:8px;height:350px;"
+                        style="margin-bottom:8px;height:340px;"
                     ),
                     ui.layout_columns(
                         ui.card(
