@@ -15,11 +15,14 @@ csv_path = os.path.join(BASE_DIR, "..", "data", "raw", "ncr_ride_bookings.csv")
 uber = pd.read_csv(csv_path)
 uber.columns = uber.columns.str.replace(' ', '_')
 uber["Date"] = pd.to_datetime(uber["Date"]).dt.date
-uber['Issue_Reason'] = (uber['Reason_for_cancelling_by_Customer']
-                        .fillna(uber['Driver_Cancellation_Reason'])
-                        .fillna(uber['Incomplete_Rides_Reason'])
-                        .fillna('')
-                        )
+
+uber['Issue_Reason'] = (
+    uber['Reason_for_cancelling_by_Customer']
+    .fillna(uber['Driver_Cancellation_Reason'])
+    .fillna(uber['Incomplete_Rides_Reason'])
+    .fillna('')
+)
+
 # ---------------- querychat setup ----------------
 # Load .env from the same directory
 load_dotenv(Path(__file__).parent / ".env")
@@ -27,177 +30,254 @@ load_dotenv(Path(__file__).parent / ".env")
 qc = querychat.QueryChat(
     uber,
     "uber",
-    client=ChatGithub(model="gpt-4.1-mini"),
+    client=ChatGithub(model="openai/gpt-4o-mini")
 )
+
+# ---------------- HELPER ----------------
+def shiny_human_format(num):
+    num = float(num)
+    if abs(num) >= 1_000_000_000:
+        return f"{num/1_000_000_000:.0f}B"
+    elif abs(num) >= 1_000_000:
+        return f"{num/1_000_000:.0f}M"
+    elif abs(num) >= 1_000:
+        return f"{num/1_000:.0f}K"
+    else:
+        return f"{num:.0f}"
 
 # ---------------- UI ----------------
 app_ui = ui.page_fluid(
     ui.navset_tab(
-        ui.nav_panel("Original Dashboard",            
+        ui.nav_panel("Original Dashboard",
             ui.tags.link(
                 rel="stylesheet",
                 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
             ),
 
-            # ---------- Styling ----------
             ui.tags.style("""
-                html, body { height: 100%; overflow: hidden; }   /* no scroll */
+                html, body {
+                    height:100vh;
+                    width:100vw;
+                    margin:0;
+                    padding:0;
+                    overflow:hidden !important;
+                    background:#f8f9fb;
+                }
 
-                .shiny-value-box {
-                    border-radius: 16px;
-                    padding: 20px;
-                    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-                    transition: transform 0.2s ease;
+                #root, .bslib-page-fillable, .container-fluid {
+                    height:100vh !important;
+                    width:100vw !important;
+                    overflow:hidden !important;
                 }
-                .shiny-value-box:hover { transform: translateY(-4px); }
 
-                .shiny-value-box .card-body {
-                    font-size: 32px;
-                    font-weight: 700;
-                    text-align: center;
+                nav[data-tab="AI-Powered Dashboard"] .sidebar,
+                [data-nav-panel="AI-Powered Dashboard"] .sidebar,
+                .page-sidebar[data-current-nav="AI-Powered Dashboard"] .sidebar {
+                    overflow: visible !important;
+                    height: 100% !important;
                 }
-                .shiny-value-box .card-title {
-                    font-size: 14px;
-                    font-weight: 500;
-                    opacity: 0.85;
-                    text-align: center;
+
+                /* Querychat chat container selectors  */
+                .chat-container, .chat-messages, .messages-container,
+                [class*="chat"], [class*="message"], .querychat-container,
+                div[class*="chat"][style*="height"], div[style*="overflow"] {
+                    max-height: 95vh !important;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    scrollbar-width: thin !important;
                 }
-                .gradient-box {
-                    background: linear-gradient(135deg, #4F46E5, #3B82F6);
-                    color: white;
+
+                /* Original dashboard sidebar */
+                .nav-panel:not([data-tab="AI-Powered Dashboard"]) .sidebar,
+                .layout-sidebar:not(.page-sidebar) .sidebar {
+                    overflow: hidden !important;
                 }
-                .card-header { font-size: 12px; padding: 6px 10px; }
-                .card { margin-bottom: 0 !important; }
+
+                /* Charts and main content */
+                .js-plotly-plot, .plot-container, .svg-container,
+                .ai-main-content, .main, .layout-main {
+                    height:100% !important;
+                    overflow:hidden !important;
+                }
+
+                * { box-sizing:border-box; }
+
+                .kpi-card {
+                    border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
+                    padding:0px; text-align:center; background:white;
+                }
+
+                .kpi-row {
+                    display:flex; justify-content:center; align-items:center;
+                    gap:4px; font-size:12px; font-weight:600;
+                }
+
+                .kpi-icon { font-size:16px; }
+                .kpi-value { font-size:18px; font-weight:700; }
+
+                .card {
+                    border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
+                    background:white; padding:0; margin:0; overflow:hidden;
+                }
+
+                .card-header {
+                    font-size:12px; font-weight:600; padding:4px 6px;
+                }
             """),
 
-            # ---------- Title ----------
             ui.div(
                 "Uber Data Visualization Dashboard",
-                style="""
-                    font-size: 20px;
-                    font-weight: 800;
-                    color: black;
-                    text-align: center;
-                    padding: 6px 0;
-                    text-shadow: 1px 2px 6px rgba(0,0,0,0.15);
-                """
+                style="font-size:16px;font-weight:800;text-align:center;padding:2px 0;"
             ),
 
             ui.layout_sidebar(
-                # ---------------- SIDEBAR ----------------
+
                 ui.sidebar(
+
                     ui.input_slider(
-                        id="slider",
-                        label="Date range",
+                        "slider",
+                        "Date range",
                         min=uber.Date.min(),
                         max=uber.Date.max(),
                         value=[uber.Date.min(), uber.Date.max()],
                     ),
+
                     ui.input_selectize(
-                        id="vehicle_type",
-                        label="Select Vehicle Type",
-                        choices=["All"] + sorted(uber["Vehicle_Type"].unique().tolist()),
+                        "vehicle_type",
+                        "Vehicle Type",
+                        choices=["All"] + sorted(uber["Vehicle_Type"].unique()),
                         selected="All",
-                        multiple=True,
-                        options={"placeholder": "Choose vehicle type(s)"},
+                        multiple=True
                     ),
-                    ui.input_action_button("action_button", "Reset filter"),
-                    width=220,                           
+
+                    ui.input_action_button("action_button","Reset Filters"),
+                    width=230
                 ),
 
-                # ---------------- MAIN CONTENT ----------------
-                ui.div(
-                    ui.layout_columns(
-                        # ----- Row 1: Value Boxes + Pie -----
+                ui.layout_columns(
+
+                    # ---------------- LEFT COLUMN ----------------
+                    ui.div(
+
                         ui.layout_columns(
-                            ui.value_box(
-                                "Total Bookings",
-                                ui.output_text("total_bookings"),
-                                showcase=ui.HTML('<i class="fa-solid fa-car fa-lg"></i>'),
-                                theme="total-bookings-box",
-                                height="260px",
-                            ),
-                            ui.value_box(
-                                "Total Revenue",
-                                ui.output_text("total_revenue"),
-                                showcase=ui.HTML('<i class="fa-solid fa-dollar-sign fa-lg"></i>'),
-                                theme="gradient-box",
-                                height="260px",
-                            ),
-                            ui.value_box(
-                                "Canceled Bookings",
-                                ui.output_text("canceled_bookings"),
-                                showcase=ui.HTML('<i class="fa-solid fa-handshake-slash fa-lg"></i>'),
-                                theme="gradient-box",
-                                height="260px",
-                            ),
-                            col_widths=[3, 5, 4],
-                            style="height: 260px; gap:4px;",
-                            
-                        ),
-                        ui.div(
-                            output_widget("pie_chart"),
-                            style="height: 260px;",
-                        ),
-                        col_widths=[6, 6],
-                        style="height: 260px; gap:4px;",
-                    ),
-                    style="flex: 0 0 45%; min-height: 0;",
-                ),
 
-                # ----- Row 2: Three Charts -----
-                ui.div(
-                    ui.layout_columns(
-                        ui.card(
-                            ui.card_header("Avg Driver Rating by Vehicle Type"),
-                            output_widget("rating_dotplot"),
-                            fill=True,
-                            full_screen=False,
+                            ui.card(
+                                ui.div([
+                                    ui.div([
+                                        ui.HTML('<i class="fa-solid fa-car kpi-icon"></i>'),
+                                        ui.div("Total Bookings")
+                                    ], class_="kpi-row"),
+                                    ui.div(ui.output_text("total_bookings"), class_="kpi-value")
+                                ]),
+                                class_="kpi-card"
+                            ),
+
+                            ui.card(
+                                ui.div([
+                                    ui.div([
+                                        ui.HTML('<i class="fa-solid fa-dollar-sign kpi-icon"></i>'),
+                                        ui.div("Total Revenue")
+                                    ], class_="kpi-row"),
+                                    ui.div(ui.output_text("total_revenue"), class_="kpi-value")
+                                ]),
+                                class_="kpi-card"
+                            ),
+
+                            ui.card(
+                                ui.div([
+                                    ui.div([
+                                        ui.HTML('<i class="fa-solid fa-handshake-slash kpi-icon"></i>'),
+                                        ui.div("Canceled Bookings")
+                                    ], class_="kpi-row"),
+                                    ui.div(ui.output_text("canceled_bookings"), class_="kpi-value")
+                                ]),
+                                class_="kpi-card"
+                            ),
+
+                            col_widths=[4,4,4],
+                            style="gap:4px;margin-bottom:4px;"
                         ),
-                        ui.card(
-                            ui.card_header("Total Booking Value Over Time"),
-                            output_widget("line_chart"),
-                            fill=True,
-                        ),
+
                         ui.card(
                             ui.card_header("Booking Status Breakdown"),
                             output_widget("sunburst_chart"),
-                            fill=True,
-                        ),
-                        col_widths=[4, 4, 4],
-                        fill=True,
-                        style="height: 100%; gap:4px;",
+                            style="height:510px;padding:0;margin:0;"
+                        )
                     ),
-                    style="flex: 0 0 55%; min-height: 0;",
-                ),
 
-                fillable=True,
-                style="display:flex; flex-direction:column; gap:6px;",
+                    # ---------------- RIGHT COLUMN ----------------
+                    ui.div(
+
+                        ui.card(
+                            ui.card_header("Revenue Distribution by Vehicle Type"),
+                            output_widget("pie_chart"),
+                            style="height:235px;margin-bottom:4px;padding:0;"
+                        ),
+
+                        ui.card(
+                            ui.card_header("Total Booking Value Over Time"),
+                            output_widget("line_chart"),
+                            style="height:165px;margin-bottom:4px;padding:0;"
+                        ),
+
+                        ui.card(
+                            ui.card_header("Avg Driver Rating by Vehicle Type"),
+                            output_widget("rating_bar"),
+                            style="height:185px;margin-bottom:4px;padding:0;"
+                        )
+                    ),
+
+                    col_widths=[6,6],
+                    style="gap:4px;"
+                )
             )
         ),
         ui.nav_panel("AI-Powered Dashboard",
             ui.page_sidebar(
                 qc.sidebar(),
-                ui.card(
-                    ui.card_header(ui.output_text("title")),
-                    ui.output_data_frame("data_table"),
-                    fill=True,
+                ui.div(
+                    ui.card(
+                        ui.card_header([
+                            "Filtered Data",
+                            ui.download_button(
+                                "download_data", 
+                                "📥 Download CSV", 
+                                class_="btn btn-outline-primary btn-sm float-end"
+                            )
+                        ]),
+                        ui.output_data_frame("qc_data_table"),
+                        style="margin-bottom:8px;height:380px;"
+                    ),
+                    ui.layout_columns(
+                        ui.card(
+                            ui.card_header("Revenue Distribution by Vehicle Type"),
+                            output_widget("qc_pie_chart"),
+                            style="height:280px;padding:0;"
+                        ),
+                        ui.card(
+                            ui.card_header("Bookings Over Time"),
+                            output_widget("qc_line_chart"),
+                            style="height:280px;padding:0;"
+                        ),
+                        col_widths=[6, 6],
+                        style="gap:8px;"
+                    ),
+                    class_="ai-main-content" 
                 ),
-                fillable=True,
-                title="Uber AI-Powered Dashboard",
+                fillable=True
             )
-        ),
-    )
+        )
+    ),
+    title="Uber AI-Powered Dashboard"
 )
 
 # ---------------- SERVER ----------------
 def server(input, output, session):
+    qc_vals = qc.server()
 
     @reactive.calc
     def filtered_data():
-        df = uber[
-            uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")
-        ]
+        df = uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
         selected = input.vehicle_type()
         if selected and "All" not in selected:
             df = df[df.Vehicle_Type.isin(selected)]
@@ -205,9 +285,7 @@ def server(input, output, session):
 
     @reactive.calc
     def filtered_data_date_only():
-        return uber[
-            uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")
-        ]
+        return uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
 
     @reactive.Effect
     def reset_filters():
@@ -215,128 +293,169 @@ def server(input, output, session):
             ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
             ui.update_selectize("vehicle_type", selected=["All"])
 
-    # ---------------- VALUE BOXES ----------------
+    # ---------------- KPI VALUES ----------------
     @render.text
     def total_bookings():
-        return f"{filtered_data().shape[0]:,}"
+        return shiny_human_format(filtered_data().shape[0])
 
     @render.text
     def total_revenue():
-        return f"{filtered_data().Booking_Value.sum():,.2f}"
+        return shiny_human_format(filtered_data().Booking_Value.sum())
 
     @render.text
     def canceled_bookings():
         df = filtered_data()
-        count = (
-            df[df.Cancelled_Rides_by_Driver == 1].shape[0]
-            + df[df.Cancelled_Rides_by_Customer == 1].shape[0]
-        )
-        return f"{count:,}"
+        count = df[df.Cancelled_Rides_by_Driver == 1].shape[0] + df[df.Cancelled_Rides_by_Customer == 1].shape[0]
+        return shiny_human_format(count)
 
-    # ---------------- DOT PLOT ----------------
+    # ---------------- CHARTS ----------------
     @render_plotly
-    def rating_dotplot():
-        df = filtered_data()
-        avg_rating = (
-            df.groupby("Vehicle_Type")["Driver_Ratings"]
-            .mean()
-            .reset_index()
-            .sort_values("Vehicle_Type", ascending=False)
+    def sunburst_chart():
+        booking_status = filtered_data().groupby(["Booking_Status","Issue_Reason"]).size().reset_index(name="counts")
+
+        fig = px.sunburst(
+            booking_status,
+            path=["Booking_Status","Issue_Reason"],
+            values="counts",
+            color_discrete_sequence=px.colors.qualitative.Set2
         )
-        fig = px.scatter(
-            avg_rating, x="Driver_Ratings", y="Vehicle_Type",
-            text="Driver_Ratings",
-            labels={"Driver_Ratings": "Average Rating", "Vehicle_Type": "Vehicle Type"},
-        )
-        fig.update_traces(texttemplate="%{text:.3f}", textposition="middle right")
-        min_r = avg_rating["Driver_Ratings"].min()
-        max_r = avg_rating["Driver_Ratings"].max()
+
         fig.update_layout(
-            xaxis_range=[min_r - 0.02, max_r + 0.02],
-            plot_bgcolor="white", paper_bgcolor="white",
-            margin=dict(l=10, r=10, t=10, b=10),        # ← tight margins
-            xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
-            yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
+            margin=dict(l=10,r=10,t=10,b=10),
+            plot_bgcolor="white",
+            paper_bgcolor="white"
         )
+
         return fig
 
-    # ---------------- LINE CHART ----------------
+    @render_plotly
+    def rating_bar():
+        df = filtered_data()
+        avg = df.groupby("Vehicle_Type")["Driver_Ratings"].mean().reset_index()
+
+        min_val = avg["Driver_Ratings"].min()
+        max_val = avg["Driver_Ratings"].max()
+        padding = (max_val - min_val) * 0.05
+        y_range = [min_val - padding, max_val + padding]
+
+        fig = px.bar(
+            avg,
+            x="Vehicle_Type",
+            y="Driver_Ratings",
+            text="Driver_Ratings",
+            color="Vehicle_Type",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+
+        fig.update_traces(texttemplate="%{text:.4f}", textposition="outside")
+
+        fig.update_layout(
+            showlegend=False,
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            margin=dict(l=5,r=5,t=5,b=5),
+            xaxis_title="",
+            yaxis_title="Avg Rating",
+            yaxis=dict(range=y_range)
+        )
+
+        return fig
+
     @render_plotly
     def line_chart():
         df = filtered_data()
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
-        fig = px.line(
-            df_agg, x="Date", y="Booking_Value",
-            labels={"Booking_Value": "Total Booking Value", "Date": "Date"},
-        )
+
+        fig = px.line(df_agg, x="Date", y="Booking_Value")
+
         fig.update_layout(
-            plot_bgcolor="white", paper_bgcolor="white",
-            margin=dict(l=10, r=10, t=10, b=10),
-            xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
-            yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            margin=dict(l=5,r=5,t=5,b=5)
         )
+
         return fig
 
-    # ---------------- PIE CHART ----------------
     @render_plotly
     def pie_chart():
         df = filtered_data_date_only()
-        revenue_by_vehicle_type = (
-            df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
-        )
-        fig = px.pie(
-            revenue_by_vehicle_type, names="Vehicle_Type", values="Booking_Value",
-            color_discrete_sequence=px.colors.qualitative.Set2,
-            title="Revenue Distribution by Vehicle Type" 
-        )
-        fig.update_traces(textinfo="percent+label", domain=dict(x=[0, 0.6]))
-        fig.update_layout(
-            margin=dict(l=10, r=10, t=40, b=10),  
-            height=260,
-            title=dict(
-                x=0.5,               # center title
-                xanchor="center",
-                font=dict(size=14, family="Arial", color="black")
-            ),
-            legend=dict(
-                orientation="v",
-                x=0.62,
-                y=0.5,
-                xanchor="left",
-                yanchor="middle",
-            ),
-        )
-        return fig
+        revenue = df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
 
-    # ---------------- SUNBURST CHART ----------------
-    @render_plotly
-    def sunburst_chart():
-        booking_status = (
-            filtered_data()
-            .groupby(['Booking_Status', 'Issue_Reason'])
-            .agg(counts=('Issue_Reason', 'size'))
-            .reset_index()
+        fig = px.pie(
+            revenue,
+            names="Vehicle_Type",
+            values="Booking_Value",
+            color="Vehicle_Type",
+            color_discrete_sequence=px.colors.qualitative.Set2
         )
-        fig = px.sunburst(
-            booking_status, path=["Booking_Status", "Issue_Reason"],
-            values="counts",
-            color_discrete_sequence=px.colors.qualitative.Set2,
+
+        fig.update_traces(textinfo="percent+label", textposition="inside")
+
+        fig.update_layout(
+            showlegend=False,
+            margin=dict(l=0,r=0,t=0,b=0)
         )
-        fig.update_traces(textinfo="label+percent entry")
-        fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
+
         return fig
     
+    @render.data_frame
+    def qc_data_table():
+        return qc_vals.df()
+
+    @render_plotly
+    def qc_pie_chart():
+        df = qc_vals.df()
+        if df.empty:
+            return px.pie(title="No data available")
+        
+        revenue = df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
+        
+        fig = px.pie(
+            revenue,
+            names="Vehicle_Type",
+            values="Booking_Value",
+            color="Vehicle_Type",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+        
+        fig.update_traces(textinfo="percent+label", textposition="inside")
+        fig.update_layout(
+            showlegend=False,
+            margin=dict(l=0,r=0,t=0,b=0),
+            plot_bgcolor="white",
+            paper_bgcolor="white"
+        )
+        return fig
+    
+    @render_plotly
+    def qc_line_chart():
+        df = qc_vals.df()
+        if df.empty:
+            return px.line(title="No data available")
+        
+        df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
+        
+        fig = px.line(df_agg, x="Date", y="Booking_Value")
+        fig.update_layout(
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            margin=dict(l=5,r=5,t=5,b=5)
+        )
+        return fig
+    
+    @render.download(filename="uber_filtered_data.csv")
+    def download_data():
+        df = qc_vals.df()
+        if df.empty:
+            yield pd.DataFrame().to_csv(index=False)
+        else:
+            yield df.to_csv(index=False)
+
     # ---------------- QUERYCHAT ----------------
     # Adapted from https://github.com/UBC-MDS/DSCI_532_vis-2_book/blob/main/code/lecture05/app-07-querychat.py
-    qc_vals = qc.server()
-
     @render.text
     def title():
         return qc_vals.title() or "Uber Rides dataset"
-
-    @render.data_frame
-    def data_table():
-        return qc_vals.df()
 
 
 # ---------------- APP ----------------
