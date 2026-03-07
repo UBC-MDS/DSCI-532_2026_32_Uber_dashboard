@@ -27,7 +27,7 @@ load_dotenv(Path(__file__).parent / ".env")
 qc = querychat.QueryChat(
     uber,
     "uber",
-    client=ChatGithub(model="gpt-4o-mini"),
+    client=ChatGithub(model="openai/gpt-4o-mini"),
 )
 
 # ---------------- UI ----------------
