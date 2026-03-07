@@ -330,6 +330,7 @@ def server(input, output, session):
             revenue,
             names="Vehicle_Type",
             values="Booking_Value",
+            color="Vehicle_Type",
             color_discrete_sequence=px.colors.qualitative.Set2
         )
 
