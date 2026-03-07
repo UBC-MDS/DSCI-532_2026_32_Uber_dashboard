@@ -3,6 +3,10 @@ import plotly.express as px
 from shinywidgets import render_plotly, output_widget
 import pandas as pd
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+import querychat
+from chatlas import ChatGithub
 
 # ---------------- DATA ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,6 +23,16 @@ uber['Issue_Reason'] = (
     .fillna('')
 )
 
+# ---------------- querychat setup ----------------
+# Load .env from the same directory
+load_dotenv(Path(__file__).parent / ".env")
+
+qc = querychat.QueryChat(
+    uber,
+    "uber",
+    client=ChatGithub(model="openai/gpt-4o-mini")
+)
+
 # ---------------- HELPER ----------------
 def shiny_human_format(num):
     num = float(num)
@@ -32,193 +46,209 @@ def shiny_human_format(num):
         return f"{num:.0f}"
 
 # ---------------- UI ----------------
-app_ui = ui.page_fillable(
-
-    ui.tags.link(
-        rel="stylesheet",
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    ),
-
-    ui.tags.style("""
-    html, body {
-        height:100vh;
-        width:100vw;
-        margin:0;
-        padding:0;
-        overflow:hidden !important;
-        background:#f8f9fb;
-    }
-
-    #root, .bslib-page-fillable, .container-fluid {
-        height:100vh !important;
-        width:100vw !important;
-        overflow:hidden !important;
-    }
-
-    .sidebar, .main, .layout-sidebar, .layout-columns {
-        height:100% !important;
-        overflow:hidden !important;
-    }
-
-    .js-plotly-plot, .plot-container, .svg-container {
-        height:100% !important;
-        overflow:hidden !important;
-    }
-
-    * {
-        box-sizing:border-box;
-    }
-
-    .kpi-card {
-        border-radius:10px;
-        box-shadow:0 2px 6px rgba(0,0,0,0.08);
-        padding:0px;
-        text-align:center;
-        background:white;
-    }
-
-    .kpi-row {
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        gap:4px;
-        font-size:12px;
-        font-weight:600;
-    }
-
-    .kpi-icon { font-size:16px; }
-
-    .kpi-value {
-        font-size:18px;
-        font-weight:700;
-    }
-
-    .card {
-        border-radius:10px;
-        box-shadow:0 2px 6px rgba(0,0,0,0.08);
-        background:white;
-        padding:0;
-        margin:0;
-        overflow:hidden;
-    }
-
-    .card-header {
-        font-size:12px;
-        font-weight:600;
-        padding:4px 6px;
-    }
-    """),
-
-    ui.div(
-        "Uber Data Visualization Dashboard",
-        style="font-size:16px;font-weight:800;text-align:center;padding:2px 0;"
-    ),
-
-    ui.layout_sidebar(
-
-        ui.sidebar(
-
-            ui.input_slider(
-                "slider",
-                "Date range",
-                min=uber.Date.min(),
-                max=uber.Date.max(),
-                value=[uber.Date.min(), uber.Date.max()],
+app_ui = ui.page_fluid(
+    ui.navset_tab(
+        ui.nav_panel("Original Dashboard",
+            ui.tags.link(
+                rel="stylesheet",
+                href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
             ),
 
-            ui.input_selectize(
-                "vehicle_type",
-                "Vehicle Type",
-                choices=["All"] + sorted(uber["Vehicle_Type"].unique()),
-                selected="All",
-                multiple=True
-            ),
+            ui.tags.style("""
+            html, body {
+                height:100vh;
+                width:100vw;
+                margin:0;
+                padding:0;
+                overflow:hidden !important;
+                background:#f8f9fb;
+            }
 
-            ui.input_action_button("action_button","Reset Filters"),
-            width=230
-        ),
+            #root, .bslib-page-fillable, .container-fluid {
+                height:100vh !important;
+                width:100vw !important;
+                overflow:hidden !important;
+            }
 
-        ui.layout_columns(
+            .sidebar, .main, .layout-sidebar, .layout-columns {
+                height:100% !important;
+                overflow:hidden !important;
+            }
 
-            # ---------------- LEFT COLUMN ----------------
+            .js-plotly-plot, .plot-container, .svg-container {
+                height:100% !important;
+                overflow:hidden !important;
+            }
+
+            * {
+                box-sizing:border-box;
+            }
+
+            .kpi-card {
+                border-radius:10px;
+                box-shadow:0 2px 6px rgba(0,0,0,0.08);
+                padding:0px;
+                text-align:center;
+                background:white;
+            }
+
+            .kpi-row {
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                gap:4px;
+                font-size:12px;
+                font-weight:600;
+            }
+
+            .kpi-icon { font-size:16px; }
+
+            .kpi-value {
+                font-size:18px;
+                font-weight:700;
+            }
+
+            .card {
+                border-radius:10px;
+                box-shadow:0 2px 6px rgba(0,0,0,0.08);
+                background:white;
+                padding:0;
+                margin:0;
+                overflow:hidden;
+            }
+
+            .card-header {
+                font-size:12px;
+                font-weight:600;
+                padding:4px 6px;
+            }
+            """),
+
             ui.div(
+                "Uber Data Visualization Dashboard",
+                style="font-size:16px;font-weight:800;text-align:center;padding:2px 0;"
+            ),
+
+            ui.layout_sidebar(
+
+                ui.sidebar(
+
+                    ui.input_slider(
+                        "slider",
+                        "Date range",
+                        min=uber.Date.min(),
+                        max=uber.Date.max(),
+                        value=[uber.Date.min(), uber.Date.max()],
+                    ),
+
+                    ui.input_selectize(
+                        "vehicle_type",
+                        "Vehicle Type",
+                        choices=["All"] + sorted(uber["Vehicle_Type"].unique()),
+                        selected="All",
+                        multiple=True
+                    ),
+
+                    ui.input_action_button("action_button","Reset Filters"),
+                    width=230
+                ),
 
                 ui.layout_columns(
 
-                    ui.card(
-                        ui.div([
-                            ui.div([
-                                ui.HTML('<i class="fa-solid fa-car kpi-icon"></i>'),
-                                ui.div("Total Bookings")
-                            ], class_="kpi-row"),
-                            ui.div(ui.output_text("total_bookings"), class_="kpi-value")
-                        ]),
-                        class_="kpi-card"
+                    # ---------------- LEFT COLUMN ----------------
+                    ui.div(
+
+                        ui.layout_columns(
+
+                            ui.card(
+                                ui.div([
+                                    ui.div([
+                                        ui.HTML('<i class="fa-solid fa-car kpi-icon"></i>'),
+                                        ui.div("Total Bookings")
+                                    ], class_="kpi-row"),
+                                    ui.div(ui.output_text("total_bookings"), class_="kpi-value")
+                                ]),
+                                class_="kpi-card"
+                            ),
+
+                            ui.card(
+                                ui.div([
+                                    ui.div([
+                                        ui.HTML('<i class="fa-solid fa-dollar-sign kpi-icon"></i>'),
+                                        ui.div("Total Revenue")
+                                    ], class_="kpi-row"),
+                                    ui.div(ui.output_text("total_revenue"), class_="kpi-value")
+                                ]),
+                                class_="kpi-card"
+                            ),
+
+                            ui.card(
+                                ui.div([
+                                    ui.div([
+                                        ui.HTML('<i class="fa-solid fa-handshake-slash kpi-icon"></i>'),
+                                        ui.div("Canceled Bookings")
+                                    ], class_="kpi-row"),
+                                    ui.div(ui.output_text("canceled_bookings"), class_="kpi-value")
+                                ]),
+                                class_="kpi-card"
+                            ),
+
+                            col_widths=[4,4,4],
+                            style="gap:4px;margin-bottom:4px;"
+                        ),
+
+                        ui.card(
+                            ui.card_header("Booking Status Breakdown"),
+                            output_widget("sunburst_chart"),
+                            style="height:510px;padding:0;margin:0;"
+                        )
                     ),
 
-                    ui.card(
-                        ui.div([
-                            ui.div([
-                                ui.HTML('<i class="fa-solid fa-dollar-sign kpi-icon"></i>'),
-                                ui.div("Total Revenue")
-                            ], class_="kpi-row"),
-                            ui.div(ui.output_text("total_revenue"), class_="kpi-value")
-                        ]),
-                        class_="kpi-card"
+                    # ---------------- RIGHT COLUMN ----------------
+                    ui.div(
+
+                        ui.card(
+                            ui.card_header("Revenue Distribution by Vehicle Type"),
+                            output_widget("pie_chart"),
+                            style="height:235px;margin-bottom:4px;padding:0;"
+                        ),
+
+                        ui.card(
+                            ui.card_header("Total Booking Value Over Time"),
+                            output_widget("line_chart"),
+                            style="height:165px;margin-bottom:4px;padding:0;"
+                        ),
+
+                        ui.card(
+                            ui.card_header("Avg Driver Rating by Vehicle Type"),
+                            output_widget("rating_bar"),
+                            style="height:185px;margin-bottom:4px;padding:0;"
+                        )
                     ),
 
-                    ui.card(
-                        ui.div([
-                            ui.div([
-                                ui.HTML('<i class="fa-solid fa-handshake-slash kpi-icon"></i>'),
-                                ui.div("Canceled Bookings")
-                            ], class_="kpi-row"),
-                            ui.div(ui.output_text("canceled_bookings"), class_="kpi-value")
-                        ]),
-                        class_="kpi-card"
-                    ),
-
-                    col_widths=[4,4,4],
-                    style="gap:4px;margin-bottom:4px;"
-                ),
-
-                ui.card(
-                    ui.card_header("Booking Status Breakdown"),
-                    output_widget("sunburst_chart"),
-                    style="height:510px;padding:0;margin:0;"
+                    col_widths=[6,6],
+                    style="gap:4px;"
                 )
-            ),
-
-            # ---------------- RIGHT COLUMN ----------------
-            ui.div(
-
+            )
+        ),
+        ui.nav_panel("AI-Powered Dashboard",
+            ui.page_sidebar(
+                qc.sidebar(),
                 ui.card(
-                    ui.card_header("Revenue Distribution by Vehicle Type"),
-                    output_widget("pie_chart"),
-                    style="height:235px;margin-bottom:4px;padding:0;"
+                    ui.card_header(ui.output_text("title")),
+                    ui.output_data_frame("data_table"),
+                    fill=True,
                 ),
-
-                ui.card(
-                    ui.card_header("Total Booking Value Over Time"),
-                    output_widget("line_chart"),
-                    style="height:165px;margin-bottom:4px;padding:0;"
-                ),
-
-                ui.card(
-                    ui.card_header("Avg Driver Rating by Vehicle Type"),
-                    output_widget("rating_bar"),
-                    style="height:185px;margin-bottom:4px;padding:0;"
-                )
-            ),
-
-            col_widths=[6,6],
-            style="gap:4px;"
+                fillable=True
+            )
         )
-    )
+    ),
+    title="Uber AI-Powered Dashboard"
 )
 
 # ---------------- SERVER ----------------
 def server(input, output, session):
+    qc_vals = qc.server()
 
     @reactive.calc
     def filtered_data():
@@ -342,6 +372,17 @@ def server(input, output, session):
         )
 
         return fig
+    
+    # ---------------- QUERYCHAT ----------------
+    # Adapted from https://github.com/UBC-MDS/DSCI_532_vis-2_book/blob/main/code/lecture05/app-07-querychat.py
+    @render.text
+    def title():
+        return qc_vals.title() or "Uber Rides dataset"
+
+    @render.data_frame
+    def data_table():
+        return qc_vals.df()
 
 # ---------------- APP ----------------
 app = App(app_ui, server)
+
