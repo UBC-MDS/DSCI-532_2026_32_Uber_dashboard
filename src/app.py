@@ -55,73 +55,74 @@ app_ui = ui.page_fluid(
             ),
 
             ui.tags.style("""
-            html, body {
-                height:100vh;
-                width:100vw;
-                margin:0;
-                padding:0;
-                overflow:hidden !important;
-                background:#f8f9fb;
-            }
+                html, body {
+                    height:100vh;
+                    width:100vw;
+                    margin:0;
+                    padding:0;
+                    overflow:hidden !important;
+                    background:#f8f9fb;
+                }
 
-            #root, .bslib-page-fillable, .container-fluid {
-                height:100vh !important;
-                width:100vw !important;
-                overflow:hidden !important;
-            }
+                #root, .bslib-page-fillable, .container-fluid {
+                    height:100vh !important;
+                    width:100vw !important;
+                    overflow:hidden !important;
+                }
 
-            .sidebar, .main, .layout-sidebar, .layout-columns {
-                height:100% !important;
-                overflow:hidden !important;
-            }
+                nav[data-tab="AI-Powered Dashboard"] .sidebar,
+                [data-nav-panel="AI-Powered Dashboard"] .sidebar,
+                .page-sidebar[data-current-nav="AI-Powered Dashboard"] .sidebar {
+                    overflow: visible !important;
+                    height: 100% !important;
+                }
 
-            .js-plotly-plot, .plot-container, .svg-container {
-                height:100% !important;
-                overflow:hidden !important;
-            }
+                /* Querychat chat container selectors  */
+                .chat-container, .chat-messages, .messages-container,
+                [class*="chat"], [class*="message"], .querychat-container,
+                div[class*="chat"][style*="height"], div[style*="overflow"] {
+                    max-height: 95vh !important;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    scrollbar-width: thin !important;
+                }
 
-            * {
-                box-sizing:border-box;
-            }
+                /* Original dashboard sidebar */
+                .nav-panel:not([data-tab="AI-Powered Dashboard"]) .sidebar,
+                .layout-sidebar:not(.page-sidebar) .sidebar {
+                    overflow: hidden !important;
+                }
 
-            .kpi-card {
-                border-radius:10px;
-                box-shadow:0 2px 6px rgba(0,0,0,0.08);
-                padding:0px;
-                text-align:center;
-                background:white;
-            }
+                /* Charts and main content */
+                .js-plotly-plot, .plot-container, .svg-container,
+                .ai-main-content, .main, .layout-main {
+                    height:100% !important;
+                    overflow:hidden !important;
+                }
 
-            .kpi-row {
-                display:flex;
-                justify-content:center;
-                align-items:center;
-                gap:4px;
-                font-size:12px;
-                font-weight:600;
-            }
+                * { box-sizing:border-box; }
 
-            .kpi-icon { font-size:16px; }
+                .kpi-card {
+                    border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
+                    padding:0px; text-align:center; background:white;
+                }
 
-            .kpi-value {
-                font-size:18px;
-                font-weight:700;
-            }
+                .kpi-row {
+                    display:flex; justify-content:center; align-items:center;
+                    gap:4px; font-size:12px; font-weight:600;
+                }
 
-            .card {
-                border-radius:10px;
-                box-shadow:0 2px 6px rgba(0,0,0,0.08);
-                background:white;
-                padding:0;
-                margin:0;
-                overflow:hidden;
-            }
+                .kpi-icon { font-size:16px; }
+                .kpi-value { font-size:18px; font-weight:700; }
 
-            .card-header {
-                font-size:12px;
-                font-weight:600;
-                padding:4px 6px;
-            }
+                .card {
+                    border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
+                    background:white; padding:0; margin:0; overflow:hidden;
+                }
+
+                .card-header {
+                    font-size:12px; font-weight:600; padding:4px 6px;
+                }
             """),
 
             ui.div(
@@ -234,10 +235,34 @@ app_ui = ui.page_fluid(
         ui.nav_panel("AI-Powered Dashboard",
             ui.page_sidebar(
                 qc.sidebar(),
-                ui.card(
-                    ui.card_header(ui.output_text("title")),
-                    ui.output_data_frame("data_table"),
-                    fill=True,
+                ui.div(
+                    ui.card(
+                        ui.card_header([
+                            "Filtered Data",
+                            ui.download_button(
+                                "download_data", 
+                                "📥 Download CSV", 
+                                class_="btn btn-outline-primary btn-sm float-end"
+                            )
+                        ]),
+                        ui.output_data_frame("qc_data_table"),
+                        style="margin-bottom:8px;height:380px;"
+                    ),
+                    ui.layout_columns(
+                        ui.card(
+                            ui.card_header("Revenue Distribution by Vehicle Type"),
+                            output_widget("qc_pie_chart"),
+                            style="height:280px;padding:0;"
+                        ),
+                        ui.card(
+                            ui.card_header("Bookings Over Time"),
+                            output_widget("qc_line_chart"),
+                            style="height:280px;padding:0;"
+                        ),
+                        col_widths=[6, 6],
+                        style="gap:8px;"
+                    ),
+                    class_="ai-main-content" 
                 ),
                 fillable=True
             )
@@ -373,15 +398,65 @@ def server(input, output, session):
 
         return fig
     
+    @render.data_frame
+    def qc_data_table():
+        return qc_vals.df()
+
+    @render_plotly
+    def qc_pie_chart():
+        df = qc_vals.df()
+        if df.empty:
+            return px.pie(title="No data available")
+        
+        revenue = df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
+        
+        fig = px.pie(
+            revenue,
+            names="Vehicle_Type",
+            values="Booking_Value",
+            color="Vehicle_Type",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+        
+        fig.update_traces(textinfo="percent+label", textposition="inside")
+        fig.update_layout(
+            showlegend=False,
+            margin=dict(l=0,r=0,t=0,b=0),
+            plot_bgcolor="white",
+            paper_bgcolor="white"
+        )
+        return fig
+    
+    @render_plotly
+    def qc_line_chart():
+        df = qc_vals.df()
+        if df.empty:
+            return px.line(title="No data available")
+        
+        df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
+        
+        fig = px.line(df_agg, x="Date", y="Booking_Value")
+        fig.update_layout(
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            margin=dict(l=5,r=5,t=5,b=5)
+        )
+        return fig
+    
+    @render.download(filename="uber_filtered_data.csv")
+    def download_data():
+        df = qc_vals.df()
+        if df.empty:
+            yield pd.DataFrame().to_csv(index=False)
+        else:
+            yield df.to_csv(index=False)
+
     # ---------------- QUERYCHAT ----------------
     # Adapted from https://github.com/UBC-MDS/DSCI_532_vis-2_book/blob/main/code/lecture05/app-07-querychat.py
     @render.text
     def title():
         return qc_vals.title() or "Uber Rides dataset"
 
-    @render.data_frame
-    def data_table():
-        return qc_vals.df()
 
 # ---------------- APP ----------------
 app = App(app_ui, server)
