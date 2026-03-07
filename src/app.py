@@ -70,6 +70,17 @@ app_ui = ui.page_fluid(
                     overflow:hidden !important;
                 }
 
+                @media (max-height: 800px) {
+                    .page-sidebar { height: 95vh !important; }
+                    .ai-main-content > div { max-height: 70vh !important; overflow-y: auto !important; }
+                    .card { height: auto !important; max-height: 200px !important; }
+                }
+
+                @media (max-height: 768px) {
+                    .ai-main-content { height: 90vh !important; }
+                    .card { max-height: 220px !important; }
+                }
+
                 nav[data-tab="AI-Powered Dashboard"] .sidebar,
                 [data-nav-panel="AI-Powered Dashboard"] .sidebar,
                 .page-sidebar[data-current-nav="AI-Powered Dashboard"] .sidebar {
@@ -81,7 +92,7 @@ app_ui = ui.page_fluid(
                 .chat-container, .chat-messages, .messages-container,
                 [class*="chat"], [class*="message"], .querychat-container,
                 div[class*="chat"][style*="height"], div[style*="overflow"] {
-                    max-height: 95vh !important;
+                    max-height: 75vh !important;
                     overflow-y: auto !important;
                     overflow-x: hidden !important;
                     scrollbar-width: thin !important;
@@ -93,11 +104,25 @@ app_ui = ui.page_fluid(
                     overflow: hidden !important;
                 }
 
-                /* Charts and main content */
-                .js-plotly-plot, .plot-container, .svg-container,
-                .ai-main-content, .main, .layout-main {
+                /* Charts and main content - FLEX LAYOUT */
+                .js-plotly-plot, .plot-container, .svg-container {
                     height:100% !important;
                     overflow:hidden !important;
+                }
+
+                .ai-main-content, .main, .layout-main {
+                    height:100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                }
+
+                .ai-main-content > *:first-child {
+                    flex: 0 0 220px !important;  /* Data table */
+                }
+
+                .ai-main-content > *:last-child {
+                    flex: 1 1 auto !important;   /* Charts fill space */
+                    overflow: hidden !important;
                 }
 
                 * { box-sizing:border-box; }
