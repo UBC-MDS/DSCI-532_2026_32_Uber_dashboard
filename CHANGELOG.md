@@ -16,7 +16,7 @@ This release expands more advanced layout edited and some issues fixed and Query
 - Two reactive elements based on filtered data from LLM
 
 ### Changed
-- Changed the rating plot from a scatter/line chart to a bar plot, with colors aligned to match the pie chart palette.
+- Changed the rating plot from a dot plot to a bar chart, with colors aligned to match the pie chart palette.
 - Reordered dashboard components to prioritize larger, more readable font sizes.
 - Applied a distinct color palette to the bottom pie chart for improved visual differentiation.
 - Removed the legend from the revenue-by-vehicle-type pie chart to reduce visual clutter.
