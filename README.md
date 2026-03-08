@@ -38,7 +38,7 @@ shiny run src/app.py
 ```
 This will start the Shiny app, and you can access it in your web browser. The dashboard will allow you to explore Uber's 2024 ride data through interactive visualizations and KPIs. If you'd like to contribute check out: https://github.com/UBC-MDS/DSCI-532_2026_32_Uber_dashboard/blob/dev/CONTRIBUTING.md
 ## Deployment
-The dashboard is deployed on posit cloud, and the preview build version can be accessed at the following URL: https://connect.posit.cloud/mhmdjamaal/content/019c971c-d6e1-ea4b-e7f0-51dd28d2e695 .The stable build version can be accessed at the following URL: https://connect.posit.cloud/mhmdjamaal/content/019c971b-439c-25a1-e1b2-febc606b69b6 . This allows users to interact with the dashboard without needing to run it locally, providing easy access to the insights derived from Uber's 2024 ride data.
+The dashboard is deployed on posit cloud, and the preview build version can be accessed at the following URL: https://019cca41-6593-d698-f198-826bf5222992.share.connect.posit.cloud/ .The stable build version can be accessed at the following URL: https://019cca3c-2682-2efd-8947-1fd5caf109bc.share.connect.posit.cloud/ . This allows users to interact with the dashboard without needing to run it locally, providing easy access to the insights derived from Uber's 2024 ride data.
 
 
 ## Demo
