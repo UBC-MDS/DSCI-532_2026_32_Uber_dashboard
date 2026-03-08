@@ -5,10 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.3.0] - 2026-02-28
+This release expands more advanced layout edited and some issues fixed and QueryChat Feature added.
+
+### Added
+- QueryChat Feature 
+- Ability to filter data using querychat (LLM)
+- A download csv feature and button for filtered data
+- Two reactive elements based on filtered data from LLM
+- 
+
+### Fixed
+- Updated the color scheme in the bottom pie chart.
+- Fixed and refined the legend in the top pie chart.
+- Aligned the value box icons for consistency.
+- Fixed the sidebar so it is no longer scrollable.
+- Standardized box layouts throughout the dashboard.
+- Repositioned the Sunburst plot and increased font sizes for better readability.
+- Reduced the size of value boxes to provide more space for the Sunburst plot.
+- Replaced the dot plot with a bar chart to show Average Driver Rating by vehicle category.
+- Matched the color palette of the Revenue Distribution pie chart with the new bar chart, ensuring consistent vehicle colors across both plots.
+- Adjusted spacing, margins, and gaps for a cleaner layout.
+- Resized the AI dashboard page to optimize the Connect Cloud layout.
+- Added deployment links for Connect Cloud.
+
+### Known Issues
+
+- Performance optimization for larger datasets is pending.
+
+---
+
+## Reflection
+
+### Job Stories Status
+
+**Fully Implemented**
+
+- ...#todo
+
+
+**Partially Implemented**
+- 
+
+**Pending for M4**
+- Performance optimization.
+
+
+---
+
+### Layout Comparison: 
+
+Compared to the original M2 sketch:
+- ...
+- The overall page structure is now more consistent.
+- The layout has a better design with larger fonts that makes it more readable for user.
+- Styling and spacing were adjusted.
+- Colors are now adjusted to convey the information better. 
+
+
+### Changed
+- change the order of components to have fonts larger
+- 
+---
+
+### Overall Reflection
+Version 0.3.0 in Milestone 3 is equipped with Chatbot feature.
+...#todo
+
+
 ## [0.2.0] - 2026-02-28
 This release expands core functionality, refines the layout, and improves overall stability as part of the M2 milestone.
 
 ### Added
+
 - Add Booking Status Sunburst Plot (PR #39) to address Issue #27.
 - An “All” option to the vehicle type dropdown filter to allow users to view aggregated results across all vehicle categories.
 - Project demo video demonstrating core functionality and workflow.
@@ -22,7 +92,6 @@ This release expands core functionality, refines the layout, and improves overal
 - Fixed the reset button to properly restore filters and visualizations to their default state.
 - The value box edited and the icon added. 
 - The Reset button functionality.
-
 
 
 ### Known Issues
