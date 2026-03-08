@@ -460,4 +460,3 @@ def server(input, output, session):
 
 # ---------------- APP ----------------
 app = App(app_ui, server)
-
