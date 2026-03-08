@@ -246,7 +246,7 @@ app_ui = ui.page_fluid(
                             )
                         ]),
                         ui.output_data_frame("qc_data_table"),
-                        style="margin-bottom:8px;height:380px;"
+                        style="margin-bottom:8px;height:310px;"
                     ),
                     ui.layout_columns(
                         ui.card(
@@ -460,4 +460,3 @@ def server(input, output, session):
 
 # ---------------- APP ----------------
 app = App(app_ui, server)
-
