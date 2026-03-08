@@ -130,16 +130,19 @@ app_ui = ui.page_fluid(
                 style="font-size:16px;font-weight:800;text-align:center;padding:2px 0;"
             ),
 
+            # ---------------- SIDEBAR + MAIN ----------------
             ui.layout_sidebar(
-
                 ui.sidebar(
-
-                    ui.input_slider(
-                        "slider",
-                        "Date range",
-                        min=uber.Date.min(),
-                        max=uber.Date.max(),
-                        value=[uber.Date.min(), uber.Date.max()],
+                    # --- Wrap slider in a div with margin-bottom to prevent scrolling ---
+                    ui.div(
+                        ui.input_slider(
+                            "slider",
+                            "Date range",
+                            min=uber.Date.min(),
+                            max=uber.Date.max(),
+                            value=[uber.Date.min(), uber.Date.max()],
+                        ),
+                        style="margin-left:10px; margin-right:10px;"  # extra space for min/max labels
                     ),
 
                     ui.input_selectize(
@@ -149,18 +152,13 @@ app_ui = ui.page_fluid(
                         selected="All",
                         multiple=True
                     ),
-
                     ui.input_action_button("action_button","Reset Filters"),
                     width=230
                 ),
-
                 ui.layout_columns(
-
                     # ---------------- LEFT COLUMN ----------------
                     ui.div(
-
                         ui.layout_columns(
-
                             ui.card(
                                 ui.div([
                                     ui.div([
@@ -171,7 +169,6 @@ app_ui = ui.page_fluid(
                                 ]),
                                 class_="kpi-card"
                             ),
-
                             ui.card(
                                 ui.div([
                                     ui.div([
@@ -182,7 +179,6 @@ app_ui = ui.page_fluid(
                                 ]),
                                 class_="kpi-card"
                             ),
-
                             ui.card(
                                 ui.div([
                                     ui.div([
@@ -193,45 +189,39 @@ app_ui = ui.page_fluid(
                                 ]),
                                 class_="kpi-card"
                             ),
-
                             col_widths=[4,4,4],
                             style="gap:4px;margin-bottom:4px;"
                         ),
-
                         ui.card(
                             ui.card_header("Booking Status Breakdown"),
                             output_widget("sunburst_chart"),
                             style="height:510px;padding:0;margin:0;"
                         )
                     ),
-
                     # ---------------- RIGHT COLUMN ----------------
                     ui.div(
-
                         ui.card(
                             ui.card_header("Revenue Distribution by Vehicle Type"),
                             output_widget("pie_chart"),
                             style="height:235px;margin-bottom:4px;padding:0;"
                         ),
-
                         ui.card(
                             ui.card_header("Total Booking Value Over Time"),
                             output_widget("line_chart"),
                             style="height:165px;margin-bottom:4px;padding:0;"
                         ),
-
                         ui.card(
                             ui.card_header("Avg Driver Rating by Vehicle Type"),
                             output_widget("rating_bar"),
                             style="height:185px;margin-bottom:4px;padding:0;"
                         )
                     ),
-
                     col_widths=[6,6],
                     style="gap:4px;"
-                )
+                )   
             )
         ),
+
         ui.nav_panel("AI-Powered Dashboard",
             ui.page_sidebar(
                 qc.sidebar(),
@@ -317,7 +307,7 @@ def server(input, output, session):
             booking_status,
             path=["Booking_Status","Issue_Reason"],
             values="counts",
-            color_discrete_sequence=px.colors.qualitative.Set2
+            color_discrete_sequence=px.colors.qualitative.Set1
         )
 
         fig.update_layout(
