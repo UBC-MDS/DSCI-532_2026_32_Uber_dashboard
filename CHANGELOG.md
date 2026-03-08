@@ -14,7 +14,13 @@ This release expands more advanced layout edited and some issues fixed and Query
 - Ability to filter data using querychat (LLM)
 - A download csv feature and button for filtered data
 - Two reactive elements based on filtered data from LLM
-- 
+
+### Changed
+- Changed the rating plot from a scatter/line chart to a bar plot, with colors aligned to match the pie chart palette.
+- Reordered dashboard components to prioritize larger, more readable font sizes.
+- Applied a distinct color palette to the bottom pie chart for improved visual differentiation.
+- Removed the legend from the revenue-by-vehicle-type pie chart to reduce visual clutter.
+- Standardized box layouts for greater visual consistency across the dashboard.
 
 ### Fixed
 - Updated the color scheme in the bottom pie chart.
@@ -33,7 +39,9 @@ This release expands more advanced layout edited and some issues fixed and Query
 ### Known Issues
 
 - Performance optimization for larger datasets is pending.
-
+- Layout sizing is not fully responsive; components may appear larger or smaller depending on the device screen size.
+- The "Premier Sedan" bar chart label is slightly cut off in the Connect Cloud deployed version.
+- The LLM feature occasionally crashes or fails to load; a page refresh resolves this
 ---
 
 ## Reflection
@@ -42,37 +50,42 @@ This release expands more advanced layout edited and some issues fixed and Query
 
 **Fully Implemented**
 
-- ...#todo
+- Users can modify the date range to view filtered results for total bookings, total revenue, and canceled bookings within the selected period. Additionally, users can view the percentage distribution of bookings filtered by vehicle type in the pie chart.
+- The dashboard displays the average driver rating grouped by vehicle type as a bar chart, with the option to filter for one or multiple specific vehicle categories, using a color scheme consistent with the rest of the dashboard.
+- The sunburst plot enables users to examine the percentage breakdown of completed versus canceled bookings, further distinguishing cancellation source and reasons proportionally.
+- Users can now query the dataset in natural language via the LLM chat feature, with two reactive dashboard elements responding dynamically to LLM output.
+- Users can download the currently filtered dataset directly from the dashboard via the download button.
 
 
 **Partially Implemented**
-- 
+- Layout responsiveness across device sizes is incomplete; sizing does not yet adapt dynamically to different screen resolutions.
 
 **Pending for M4**
 - Performance optimization.
-
-
+- Full responsive layout support across device sizes.
+- Fix the "Premier Sedan" label clipping on the Connect Cloud deployment.
+- Improve LLM reliability to eliminate the need for manual refreshes.
 ---
 
-### Layout Comparison: 
-
-Compared to the original M2 sketch:
-- ...
-- The overall page structure is now more consistent.
-- The layout has a better design with larger fonts that makes it more readable for user.
-- Styling and spacing were adjusted.
-- Colors are now adjusted to convey the information better. 
-
+### Layout Comparison
+Compared to M2:
+- Component order was revised to prioritize readability, with larger fonts now more prominent in the layout.
+- The sidebar was stabilized by fixing width overflow, eliminating unwanted horizontal scrolling.
+- Box layouts were made more consistent in size and spacing, improving the overall visual rhythm of the dashboard.
+- Color schemes were refined across multiple charts to improve differentiation and cohesion.
 
 ### Changed
-- change the order of components to have fonts larger
-- 
+- Updated job stories to reflect M3 implementation progress and scope.
+- Updated the README to reflect new features and deployment details.
+- Improved visual consistency across chart components through coordinated color palettes.
 ---
 
 ### Overall Reflection
-Version 0.3.0 in Milestone 3 is equipped with Chatbot feature.
-...#todo
+Version 0.3.0 represents a significant step forward in interactivity and polish. The addition of LLM-powered querying allows for a new dimension of data exploration, allowing users to ask questions about the dataset directly within the dashboard. The download functionality and reactive elements further strengthen the user workflow.
 
+Layout and visual improvements include the bar chart conversion, color alignment, and sidebar fix, these address the most pressing usability issues carried over from M2. While responsiveness and LLM stability remain slight concerns, the foundation is now well-positioned for final refinement. The focus going forward will be on addressing these known issues, improving cross-device compatibility, and hardening the LLM integration for production reliability. Testing outputs also needs to be done to ensure consistency.
+
+---
 
 ## [0.2.0] - 2026-02-28
 This release expands core functionality, refines the layout, and improves overall stability as part of the M2 milestone.
