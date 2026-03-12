@@ -26,6 +26,7 @@
 | `line_chart`  |	Output	      | `@render_plotly`        | 	`filtered_data`	           | #3 |
 | `pie_chart`   |	Output	      | `@render_plotly`        |   `filtered_data_date_only`	 | #2 |
 | `sunburst_chart`   |	Output	| `@render_plotly`        |   `filtered_data`	           | #5 |
+| `qc_data_table`   |	Output	| `@render.data_frame`      |   QueryChat           | N/A |
 
 ## Section 3: Reactivity Diagram
 
@@ -43,6 +44,8 @@ flowchart TD
   F --> P4([sunburst_chart])
 
   G --> P3([pie_chart])
+
+  QueryChat --> D([qc_data_table])
 ```
 
 ## Section 4: Calculation Details
