@@ -7,14 +7,32 @@ from pathlib import Path
 from dotenv import load_dotenv
 import querychat
 from chatlas import ChatGithub
+import ibis
 
 # ---------------- DATA ----------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-csv_path = os.path.join(BASE_DIR, "..", "data", "raw", "ncr_ride_bookings.csv")
 
-uber = pd.read_csv(csv_path)
-uber.columns = uber.columns.str.replace(' ', '_')
-uber["Date"] = pd.to_datetime(uber["Date"]).dt.date
+
+# Load processed dataset
+BASE_DIR = Path(__file__).parent
+csv_path = BASE_DIR.parent / "data" / "raw"/ "ncr_ride_bookings.csv"
+csv_path.parent.mkdir(parents=True, exist_ok=True)
+parquet_path = BASE_DIR.parent / "data" / "processed"/ "ncr_ride_bookings.parquet"
+
+# If parquet exists, load it; else create it once
+if os.path.exists(parquet_path):
+    uber = pd.read_parquet(parquet_path)
+else:
+    uber = pd.read_csv(csv_path)
+    uber.to_parquet(parquet_path, engine="pyarrow", index=False)
+
+
+# Connect to DuckDB
+con = ibis.duckdb.connect("data/processed/uber.duckdb")  # creates file-based DB
+uber_table = con.read_parquet(parquet_path)
+
+
+uber.columns = uber.columns.str.replace(" ", "_", regex=False)
+uber["Date"] = pd.to_datetime(uber["Date"])
 
 uber['Issue_Reason'] = (
     uber['Reason_for_cancelling_by_Customer']
@@ -266,10 +284,27 @@ def server(input, output, session):
 
     @reactive.calc
     def filtered_data():
-        df = uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
+        table = uber_table
+        table = table.mutate(Date=table.Date.cast('timestamp'))
+
+        date_min, date_max = input.slider()
+        date_min = pd.Timestamp(date_min)
+        date_max = pd.Timestamp(date_max)
+
+        table = table.filter(table.Date.between(date_min, date_max))  # also fixes the FutureWarning
+
         selected = input.vehicle_type()
         if selected and "All" not in selected:
-            df = df[df.Vehicle_Type.isin(selected)]
+            table = table.filter(table.Vehicle_Type.isin(selected))
+
+        df = table.execute()
+        df.columns = df.columns.str.replace(" ", "_", regex=False)  # ← ADD THIS
+        df["Issue_Reason"] = (
+            df.get("Reason_for_cancelling_by_Customer", pd.Series(dtype=str))
+            .fillna(df.get("Driver_Cancellation_Reason", pd.Series(dtype=str)))
+            .fillna(df.get("Incomplete_Rides_Reason", pd.Series(dtype=str)))
+            .fillna('')
+        )
         return df
 
     @reactive.calc
@@ -360,7 +395,9 @@ def server(input, output, session):
         fig.update_layout(
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=5,b=5)
+            xaxis_title="",
+            yaxis_title="Booking Val.",
+            margin=dict(l=5,r=5,t=20,b=20)
         )
 
         return fig
