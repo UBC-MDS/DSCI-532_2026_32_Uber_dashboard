@@ -7,6 +7,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import querychat
 from chatlas import ChatGithub
+import plotly.graph_objects as go
+
 
 # ---------------- DATA ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -368,21 +370,34 @@ def server(input, output, session):
     @render_plotly
     def pie_chart():
         df = filtered_data_date_only()
+        if df.empty:
+            # handle empty data
+            return go.Figure(go.Pie(labels=["No data available"], values=[1]))
+
         revenue = df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
+        total = revenue["Booking_Value"].sum()
+        threshold = 0.15  # slices <5% of total are considered small
 
-        fig = px.pie(
-            revenue,
-            names="Vehicle_Type",
-            values="Booking_Value",
-            color="Vehicle_Type",
-            color_discrete_sequence=px.colors.qualitative.Set2
+        # per-slice text positions: small slices outside, others inside
+        text_pos = ["outside" if v / total < threshold else "inside" for v in revenue["Booking_Value"]]
+        pull_vals = [0.02 if v / total < threshold else 0 for v in revenue["Booking_Value"]]  # slight pull for clarity
+
+        fig = go.Figure(
+            go.Pie(
+                labels=revenue["Vehicle_Type"],
+                values=revenue["Booking_Value"],
+                textinfo="percent+label",
+                textposition=text_pos,
+                pull=pull_vals,
+                marker=dict(colors=px.colors.qualitative.Set2)
+            )
         )
-
-        fig.update_traces(textinfo="percent+label", textposition="inside")
 
         fig.update_layout(
             showlegend=False,
-            margin=dict(l=0,r=0,t=0,b=0)
+            margin=dict(l=0, r=0, t=0, b=0),
+            plot_bgcolor="white",
+            paper_bgcolor="white"
         )
 
         return fig
