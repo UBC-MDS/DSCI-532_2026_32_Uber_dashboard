@@ -6,6 +6,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.4.0] - 2026-03-16
+This release expands more advanced feature, added test cases and parquet and also some UI issues fixed.
+
+### Added
+- Test cases #todo (need more explainaton)
+- Added code to app.py to convert csv to parquet
+- Connected to duckDB
+- dapted filtering to duckDB on the dashboard
+- #todo (the advanced feature)
+
+
+### Changed
+- For smaller slices in the pie chart, labels are positioned outside the chart with arrows pointing to the corresponding slice. This improves readability and ensures that the text remains legible even for small proportions.
+- In the Booking Status Breakdown visualization, abbreviated labels are used to reduce visual clutter. A codebook (legend) is provided below the figure to clearly define each abbreviation.
+- The explicit “All” option in the vehicle type filter was removed and replaced with an empty default selection. When no vehicle type is selected, the dashboard automatically displays data for all vehicle types.
+
+### Fixed
+- Booking Status Breakdown': font too small.
+- Resolve the issue of cut off in In Uber XL rateing  in bar chart "Avg Driver Rating by Vehicle Type".
+- Moving Average appled to smooth the line plot "Total Booking Value Over Time".
+- Repositioned the Sunburst plot and increased font sizes for better readability.
+- Adjusted spacing, margins, and gaps for a cleaner layout.
+- Resolved the issue of booking value y-axis not showing in full.
+
+### Known Issues
+- Adding dark mode switch 
+- Performance optimization for larger datasets is pending.
+- Layout sizing is not fully responsive; components may appear larger or smaller depending on the device screen size.
+- The LLM feature occasionally crashes or fails to load; a page refresh resolves this
+---
+
+## Reflection
+
+### Job Stories Status
+
+**Fully Implemented**
+
+- Users can modify the date range to view filtered results for total bookings, total revenue, and canceled bookings within the selected period. Additionally, users can view the percentage distribution of bookings filtered by vehicle type in the pie chart.
+- The dashboard displays the average driver rating grouped by vehicle type as a bar chart, with the option to filter for one or multiple specific vehicle categories, using a color scheme consistent with the rest of the dashboard.
+- The sunburst plot enables users to examine the percentage breakdown of completed versus canceled bookings, further distinguishing cancellation source and reasons proportionally.
+- Users can now query the dataset in natural language via the LLM chat feature, with two reactive dashboard elements responding dynamically to LLM output.
+- Users can download the currently filtered dataset directly from the dashboard via the download button.
+- #todo
+
+**Partially Implemented**
+- Layout responsiveness across device sizes is incomplete; sizing does not yet adapt dynamically to different screen resolutions.
+
+---
+
+### Layout Comparison
+Compared to M3:
+- Data storage was optimized by converting the dataset to Parquet format and querying it through DuckDB, significantly improving data loading and filtering performance within the dashboard.
+- Automated test cases were added to verify key dashboard behaviors and core filtering logic, helping ensure that future changes do not unintentionally break expected functionality.
+- An advanced component click-event interaction feature was implemented, enabling the application to react to user interactions with output components (e.g., charts), thereby improving interactivity and enabling more dynamic exploratory analysis.
+- The internal application structure was refined to better support performance improvements, testing, and interactive behaviors, contributing to a more robust and maintainable dashboard architecture.
+
+---
+
+### Overall Reflection
+Version 0.4.0 represents a major step forward in both functionality and performance of the dashboard. Data handling was significantly improved by converting the dataset to Parquet format and integrating DuckDB for querying, which accelerates data loading and filtering operations and enhances overall responsiveness.
+
+In addition, automated test cases were introduced to verify the core filtering logic and expected behaviors of the dashboard. These tests help ensure that future modifications do not unintentionally break key functionality and provide a clearer framework for maintaining reliability as the project evolves.
+
+The dashboard also gained an advanced component click-event interaction capability, allowing the application to respond dynamically to user interactions with visual components. This enhances exploratory analysis by enabling more interactive workflows directly through the charts and outputs.
+
+Several UI improvements were implemented to increase readability and usability. Layout adjustments, clearer labeling strategies, and refinements to chart presentation help reduce visual clutter and make the dashboard easier to interpret. Together, these changes create a more polished and user-friendly interface while maintaining consistency across visual components.
+
+Overall, this version strengthens the technical foundation of the application by improving performance, interactivity, and maintainability, positioning the dashboard for continued refinement and more advanced analytical capabilities in future iterations.
+
+---
+
 ## [0.3.0] - 2026-03-09
 This release expands more advanced layout edited and some issues fixed and QueryChat Feature added.
 
