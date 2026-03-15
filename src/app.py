@@ -421,8 +421,10 @@ def server(input, output, session):
         t = plot_theme()
         fig.update_layout(
             margin=dict(l=1, r=1, t=1, b=8),
+
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
+
             annotations=[
                 dict(
                     text=f"<b>Codebook:</b><br>{codebook_text}",
@@ -511,7 +513,7 @@ def server(input, output, session):
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=5,r=5,t=5,b=1),
+            margin=dict(l=5,r=5,t=45,b=15),
             font=dict(color=t["text"]),
             xaxis=dict(
                 tickfont=dict(color=t["axis"]),
@@ -523,6 +525,7 @@ def server(input, output, session):
                 title_font=dict(color=t["axis"]),
                 gridcolor=t["grid"],
             ),
+
         )
 
         return fig
@@ -552,6 +555,13 @@ def server(input, output, session):
                 marker=dict(colors=px.colors.qualitative.Set2)
             )
         )
+
+        # fig.update_layout(
+        #     showlegend=False,
+        #     margin=dict(l=0, r=0, t=0, b=1),
+        #     plot_bgcolor="white",
+        #     paper_bgcolor="white"
+        # )
         t = plot_theme()
         fig.update_layout(
             showlegend=False,
@@ -569,6 +579,7 @@ def server(input, output, session):
                 title_font=dict(color=t["axis"]),
                 gridcolor=t["grid"],
             ),
+
         )
 
         return fig
@@ -637,6 +648,7 @@ def server(input, output, session):
                 title_font=dict(color=t["axis"]),
                 gridcolor=t["grid"],
             ),
+
         )
         return fig
     
