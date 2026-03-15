@@ -23,7 +23,8 @@ This release expands more advanced feature, added test cases and parquet and als
 - The explicit “All” option in the vehicle type filter was removed and replaced with an empty default selection. When no vehicle type is selected, the dashboard automatically displays data for all vehicle types.
 
 ### Fixed
-- Booking Status Breakdown': font too small.
+- Increased font size in Revenue Distribution by Vehicle Type.
+- Increased font size in Booking Status Breakdown sunburst chart. 
 - Resolve the issue of cut off in In Uber XL rateing  in bar chart "Avg Driver Rating by Vehicle Type".
 - Moving Average appled to smooth the line plot "Total Booking Value Over Time".
 - Repositioned the Sunburst plot and increased font sizes for better readability.
@@ -32,48 +33,41 @@ This release expands more advanced feature, added test cases and parquet and als
 
 ### Known Issues
 - Adding dark mode switch 
-- Performance optimization for larger datasets is pending.
 - Layout sizing is not fully responsive; components may appear larger or smaller depending on the device screen size.
 - The LLM feature occasionally crashes or fails to load; a page refresh resolves this
 ---
 
-## Reflection
+#todo 
+### Release Highlight: [Name of your advanced feature]
+- **Option chosen:** D
+- **PR:** #...
+- **Why this option over the others:** <!-- 1–2 sentences; link to your feature prioritization issue -->
+- **Feature prioritization issue link:** [#79](https://github.com/UBC-MDS/DSCI-532_2026_32_Uber_dashboard/issues/79)
 
-### Job Stories Status
 
-**Fully Implemented**
+### Collaboration
 
-- Users can modify the date range to view filtered results for total bookings, total revenue, and canceled bookings within the selected period. Additionally, users can view the percentage distribution of bookings filtered by vehicle type in the pie chart.
-- The dashboard displays the average driver rating grouped by vehicle type as a bar chart, with the option to filter for one or multiple specific vehicle categories, using a color scheme consistent with the rest of the dashboard.
-- The sunburst plot enables users to examine the percentage breakdown of completed versus canceled bookings, further distinguishing cancellation source and reasons proportionally.
-- Users can now query the dataset in natural language via the LLM chat feature, with two reactive dashboard elements responding dynamically to LLM output.
-- Users can download the currently filtered dataset directly from the dashboard via the download button.
-- #todo
+The dashboard presents booking and revenue insights through clear visualizations and an organized layout, enabling users to quickly identify trends such as revenue distribution by vehicle type and booking status. Interactive charts and consistent styling improve readability and usability. However, some limitations remain, including limited filtering options and relatively simple interaction patterns, which may restrict deeper exploration of the data. Minor deviations from DSCI 531 visualization best practices were made to maintain layout clarity and prioritize readability within the available dashboard space.
 
-**Partially Implemented**
-- Layout responsiveness across device sizes is incomplete; sizing does not yet adapt dynamically to different screen resolutions.
+- Users can modify the date range to view filtered results for total bookings, total revenue, and canceled bookings within the selected period. The pie chart also displays the percentage distribution of bookings by vehicle type based on the selected filters.
+- The dashboard presents the average driver rating by vehicle type as a bar chart, with the ability to filter for one or multiple vehicle categories while maintaining a consistent color scheme across the dashboard.
+- The sunburst chart allows users to explore the proportional breakdown of completed versus canceled bookings, including cancellation sources and reasons.
+- Users can query the dataset using natural language through an integrated LLM chat feature, with two reactive dashboard elements updating dynamically based on the generated responses.
+- The currently filtered dataset can be downloaded directly from the dashboard using a download button.
 
----
-
-### Layout Comparison
 Compared to M3:
-- Data storage was optimized by converting the dataset to Parquet format and querying it through DuckDB, significantly improving data loading and filtering performance within the dashboard.
-- Automated test cases were added to verify key dashboard behaviors and core filtering logic, helping ensure that future changes do not unintentionally break expected functionality.
-- An advanced component click-event interaction feature was implemented, enabling the application to react to user interactions with output components (e.g., charts), thereby improving interactivity and enabling more dynamic exploratory analysis.
-- The internal application structure was refined to better support performance improvements, testing, and interactive behaviors, contributing to a more robust and maintainable dashboard architecture.
 
----
+- Data handling was improved by converting the dataset to Parquet format and querying it using DuckDB, which significantly enhances data loading and filtering performance.
+- Automated test cases were introduced to validate core filtering logic and key dashboard behaviors, helping ensure stability as the project evolves.
+- A component click-event interaction feature was implemented, allowing the dashboard to respond to user interactions with visual components and enabling more dynamic exploratory analysis.
+- The internal application structure was refined to support performance improvements, testing, and interactive features, resulting in a more maintainable and robust architecture.
+- Several UI refinements were introduced to improve readability and reduce visual clutter, including layout adjustments, clearer labeling, and improved chart presentation.
 
-### Overall Reflection
-Version 0.4.0 represents a major step forward in both functionality and performance of the dashboard. Data handling was significantly improved by converting the dataset to Parquet format and integrating DuckDB for querying, which accelerates data loading and filtering operations and enhances overall responsiveness.
+Overall, version 0.4.0 represents a significant improvement in the dashboard’s performance, interactivity, and maintainability, strengthening its technical foundation for future development.
 
-In addition, automated test cases were introduced to verify the core filtering logic and expected behaviors of the dashboard. These tests help ensure that future modifications do not unintentionally break key functionality and provide a clearer framework for maintaining reliability as the project evolves.
+**Trade-offs:** We prioritized improvements that enhanced readability and visual clarity (such as font sizing and chart labeling) over implementing additional advanced features due to time and milestone constraints.
 
-The dashboard also gained an advanced component click-event interaction capability, allowing the application to respond dynamically to user interactions with visual components. This enhances exploratory analysis by enabling more interactive workflows directly through the charts and outputs.
-
-Several UI improvements were implemented to increase readability and usability. Layout adjustments, clearer labeling strategies, and refinements to chart presentation help reduce visual clutter and make the dashboard easier to interpret. Together, these changes create a more polished and user-friendly interface while maintaining consistency across visual components.
-
-Overall, this version strengthens the technical foundation of the application by improving performance, interactivity, and maintainability, positioning the dashboard for continued refinement and more advanced analytical capabilities in future iterations.
+**Most useful:** Lecture materials on effective dashboard design and visualization best practices were particularly helpful in guiding layout decisions and improving chart readability. Feedback from earlier milestones also helped identify areas where visual clarity and labeling could be improved.
 
 ---
 
