@@ -323,7 +323,7 @@ def server(input, output, session):
         avg = df.groupby("Vehicle_Type")["Driver_Ratings"].mean().reset_index()
 
         min_val = avg["Driver_Ratings"].min()
-        max_val = avg["Driver_Ratings"].max()
+        max_val = avg["Driver_Ratings"].max()+0.005
         padding = (max_val - min_val) * 0.05
         y_range = [min_val - padding, max_val + padding]
 
@@ -342,7 +342,7 @@ def server(input, output, session):
             showlegend=False,
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=5,b=5),
+            margin=dict(l=5,r=5,t=25,b=5),
             xaxis_title="",
             yaxis_title="Avg Rating",
             yaxis=dict(range=y_range)
@@ -355,12 +355,26 @@ def server(input, output, session):
         df = filtered_data()
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
 
-        fig = px.line(df_agg, x="Date", y="Booking_Value")
+        # ------------------ Add Moving Average ------------------
+        window_size = 7  # 7-day moving average; you can change to 3, 14, etc.
+        df_agg['Booking_Value_MA'] = df_agg['Booking_Value'].rolling(
+            window=window_size, min_periods=1, center=True
+            ).mean()
+
+
+        fig = px.line(
+            df_agg, 
+            x="Date", 
+            y="Booking_Value_MA",
+            labels={"Booking_Value_MA": "Booking Val MA"},
+            title=f"Total Booking Value Over Time({window_size}-Day MA)"
+            )
 
         fig.update_layout(
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=5,b=5)
+            margin=dict(l=5,r=5,t=45,b=15),
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
         )
 
         return fig
