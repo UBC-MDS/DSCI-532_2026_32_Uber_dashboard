@@ -42,8 +42,9 @@ uber['Issue_Reason'] = (
     .fillna(uber['Incomplete_Rides_Reason'])
     .fillna('')
 )
-for col in uber.select_dtypes(include='object').columns:
-    uber[col] = uber[col].astype(str)
+for col in uber.columns:
+    if uber[col].dtype.kind not in ('M', 'i', 'u', 'f', 'b'):  # skip datetime, int, float, bool
+        uber[col] = uber[col].astype(object)
 # ---------------- querychat setup ----------------
 # Load .env from the same directory
 load_dotenv(Path(__file__).parent / ".env")
@@ -160,7 +161,9 @@ app_ui = ui.page_fluid(
                             "Date range",
                             min=uber.Date.min(),
                             max=uber.Date.max(),
-                            value=[uber.Date.min(), uber.Date.max()],
+                            value=[uber.Date.min(), uber.Date.max()], 
+                            time_format="%Y-%m-%d",
+                            timezone="UTC"
                         ),
                         style="margin-left:10px; margin-right:10px;"  # extra space for min/max labels
                     ),
