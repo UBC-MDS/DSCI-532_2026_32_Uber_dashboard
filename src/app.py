@@ -149,9 +149,10 @@ app_ui = ui.page_fluid(
                     ui.input_selectize(
                         "vehicle_type",
                         "Vehicle Type",
-                        choices=["All"] + sorted(uber["Vehicle_Type"].unique()),
-                        selected="All",
-                        multiple=True
+                        choices=sorted(uber["Vehicle_Type"].unique()),
+                        selected=[],
+                        multiple=True,
+                        options={"placeholder": " select vehicle types..."}  # blank space shown initially
                     ),
                     ui.input_action_button("action_button","Reset Filters"),
                     width=230
@@ -266,13 +267,13 @@ app_ui = ui.page_fluid(
 def server(input, output, session):
     qc_vals = qc.server()
 
-    @reactive.calc
-    def filtered_data():
-        df = uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
-        selected = input.vehicle_type()
-        if selected and "All" not in selected:
-            df = df[df.Vehicle_Type.isin(selected)]
-        return df
+    # @reactive.calc
+    # def filtered_data():
+    #     df = uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
+    #     selected = input.vehicle_type()
+    #     if selected and "All" not in selected:
+    #         df = df[df.Vehicle_Type.isin(selected)]
+    #     return df
 
     @reactive.calc
     def filtered_data_date_only():
@@ -284,27 +285,15 @@ def server(input, output, session):
             ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
             ui.update_selectize("vehicle_type", selected=["All"])
             
-    @reactive.Effect
-    def handle_all_selection():
-        selected = input.vehicle_type()  # current selection
+    @reactive.calc
+    def filtered_data():
+        df = uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
+        selected = input.vehicle_type()
+        if selected:  # filter only if user selected anything
+            df = df[df.Vehicle_Type.isin(selected)]
+        # if nothing selected → return all rows
+        return df
 
-        if not selected:
-            return  # do nothing if empty
-
-        if "All" in selected and len(selected) > 1:
-            # If "All" is selected along with others → keep only "All"
-            ui.update_selectize("vehicle_type", selected=["All"])
-        elif "All" not in selected and "All" in input.vehicle_type():
-            # This case is redundant; we mainly need the above rule
-            ui.update_selectize("vehicle_type", selected=["All"])
-        elif "All" in input.vehicle_type() and len(selected) == 1:
-            # "All" selected alone → do nothing
-            pass
-        else:
-            # Any other options selected → remove "All" if present
-            new_selection = [x for x in selected if x != "All"]
-            if len(new_selection) != len(selected):
-                ui.update_selectize("vehicle_type", selected=new_selection)
 
     # ---------------- KPI VALUES ----------------
     @render.text
