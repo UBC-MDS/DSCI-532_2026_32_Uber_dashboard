@@ -29,7 +29,7 @@ else:
 
 
 # Connect to DuckDB
-con = ibis.duckdb.connect("data/processed/uber.duckdb")  # creates file-based DB
+con = ibis.duckdb.connect()  # creates file-based DB
 uber_table = con.read_parquet(parquet_path)
 
 
