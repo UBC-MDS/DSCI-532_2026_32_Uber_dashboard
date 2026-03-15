@@ -196,7 +196,7 @@ app_ui = ui.page_fluid(
                         ui.card(
                             ui.card_header("Booking Status Breakdown"),
                             output_widget("sunburst_chart"),
-                            style="height:597px;padding:0;margin:0;"
+                            style="height:600px;padding:0;margin:0;"
                         )
                     ),
                     # ---------------- RIGHT COLUMN ----------------
@@ -283,6 +283,28 @@ def server(input, output, session):
         if input.action_button() > 0:
             ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
             ui.update_selectize("vehicle_type", selected=["All"])
+            
+    @reactive.Effect
+    def handle_all_selection():
+        selected = input.vehicle_type()  # current selection
+
+        if not selected:
+            return  # do nothing if empty
+
+        if "All" in selected and len(selected) > 1:
+            # If "All" is selected along with others → keep only "All"
+            ui.update_selectize("vehicle_type", selected=["All"])
+        elif "All" not in selected and "All" in input.vehicle_type():
+            # This case is redundant; we mainly need the above rule
+            ui.update_selectize("vehicle_type", selected=["All"])
+        elif "All" in input.vehicle_type() and len(selected) == 1:
+            # "All" selected alone → do nothing
+            pass
+        else:
+            # Any other options selected → remove "All" if present
+            new_selection = [x for x in selected if x != "All"]
+            if len(new_selection) != len(selected):
+                ui.update_selectize("vehicle_type", selected=new_selection)
 
     # ---------------- KPI VALUES ----------------
     @render.text
@@ -312,10 +334,8 @@ def server(input, output, session):
             
         # Short labels mapping
         booking_status_issue_short = {
-            "No Show": "NoShow",
             "Incomplete": "InComp",
             "No Driver Found": "NoDrv",
-            "Other Issue": "OtherIssue",
             "AC is not working": "ACIssue",
             "Wrong Address": "WrongAddr",
             "Change of plans": "ChgPlans",
@@ -372,7 +392,7 @@ def server(input, output, session):
             paper_bgcolor="white",
             annotations=[
                 dict(
-                    text=f"<b>Legend / Codebook:</b><br>{codebook_text}",
+                    text=f"<b>Codebook:</b><br>{codebook_text}",
                     xref="paper",
                     yref="paper",
                     x=0,
