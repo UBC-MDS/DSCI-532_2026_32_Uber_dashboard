@@ -42,7 +42,8 @@ uber['Issue_Reason'] = (
     .fillna(uber['Incomplete_Rides_Reason'])
     .fillna('')
 )
-
+for col in uber.select_dtypes(include='object').columns:
+    uber[col] = uber[col].astype(str)
 # ---------------- querychat setup ----------------
 # Load .env from the same directory
 load_dotenv(Path(__file__).parent / ".env")
