@@ -196,7 +196,7 @@ app_ui = ui.page_fluid(
                         ui.card(
                             ui.card_header("Booking Status Breakdown"),
                             output_widget("sunburst_chart"),
-                            style="height:510px;padding:0;margin:0;"
+                            style="height:597px;padding:0;margin:0;"
                         )
                     ),
                     # ---------------- RIGHT COLUMN ----------------
@@ -204,17 +204,17 @@ app_ui = ui.page_fluid(
                         ui.card(
                             ui.card_header("Revenue Distribution by Vehicle Type"),
                             output_widget("pie_chart"),
-                            style="height:235px;margin-bottom:4px;padding:0;"
+                            style="height:275px;margin-bottom:4px;padding:0;"
                         ),
                         ui.card(
                             ui.card_header("Total Booking Value Over Time"),
                             output_widget("line_chart"),
-                            style="height:165px;margin-bottom:4px;padding:0;"
+                            style="height:205px;margin-bottom:4px;padding:0;"
                         ),
                         ui.card(
                             ui.card_header("Avg Driver Rating by Vehicle Type"),
                             output_widget("rating_bar"),
-                            style="height:185px;margin-bottom:4px;padding:0;"
+                            style="height:195px;margin-bottom:4px;padding:0;"
                         )
                     ),
                     col_widths=[6,6],
@@ -298,26 +298,96 @@ def server(input, output, session):
         df = filtered_data()
         count = df[df.Cancelled_Rides_by_Driver == 1].shape[0] + df[df.Cancelled_Rides_by_Customer == 1].shape[0]
         return shiny_human_format(count)
-
+    
     # ---------------- CHARTS ----------------
     @render_plotly
     def sunburst_chart():
-        booking_status = filtered_data().groupby(["Booking_Status","Issue_Reason"]).size().reset_index(name="counts")
+        
+        booking_status = (
+            filtered_data()
+            .groupby(["Booking_Status", "Issue_Reason"])
+            .size()
+            .reset_index(name="counts")
+        )
+            
+        # Short labels mapping
+        booking_status_issue_short = {
+            "No Show": "NoShow",
+            "Incomplete": "InComp",
+            "No Driver Found": "NoDrv",
+            "Other Issue": "OtherIssue",
+            "AC is not working": "ACIssue",
+            "Wrong Address": "WrongAddr",
+            "Change of plans": "ChgPlans",
+            "Vehicle Breakdown": "VehBreak",
+            "Customer Demand": "CustDemand",
+            "Passenger no show": "PassNoShow",
+            "Cancelled by Driver": "Drv Canc",
+            "Customer related issue": "CustIssue",
+            "Driver asked to cancel": "DrvCanc",
+            "Cancelled by Customer": "Cust Canc",
+            "The customer was occupied/waiting": "CustBusy",
+            "Personal & Car related issues": "PersCar",
+            "Never on unmanned people in time": "NoShowTime",
+            "The customer was coughing/sick": "CustSick",
+            "More than permitted people in there": "OverCap",
+            "Driver is not moving towards pickup location": "DrvNotMove", 
+        }
+        
+        # Map short labels, fill unmapped with original
+        booking_status["Booking_Status_Short"] = booking_status["Booking_Status"].map(
+            booking_status_issue_short).fillna(booking_status["Booking_Status"])
+    
+        # Replace empty or NaN Issue_Reason with placeholder
+        booking_status["Issue_Reason"] = booking_status["Issue_Reason"].fillna("No Issue")
+        booking_status["Issue_Reason"] = booking_status["Issue_Reason"].replace("", "Not Given")
+        
+        booking_status["Issue_Reason"] = booking_status["Issue_Reason"].map(
+            booking_status_issue_short).fillna(booking_status["Issue_Reason"])
 
+
+        # Ensure both columns are strings
+        booking_status["Booking_Status_Short"] = booking_status["Booking_Status_Short"].astype(str)
+        booking_status["Issue_Reason"] = booking_status["Issue_Reason"].astype(str)
+
+
+        # booking_status["Booking_Status_Short"] = booking_status["Booking_Status"].map(booking_status_short)
+        # Create sunburst
         fig = px.sunburst(
             booking_status,
-            path=["Booking_Status","Issue_Reason"],
+            path=["Booking_Status_Short", "Issue_Reason"],
             values="counts",
-            color_discrete_sequence=px.colors.qualitative.Set1
+            color_discrete_sequence=px.colors.qualitative.Set1,
         )
+        fig.update_traces(
+          domain=dict(x=[0.15, 0.99], y=[0.15, 0.98])   # push chart to the right
+            )
+
+        # Codebook
+        codebook_text = "<br>".join([f"{v} = {k}" for k, v in booking_status_issue_short.items()])
 
         fig.update_layout(
-            margin=dict(l=10,r=10,t=10,b=10),
+            margin=dict(l=1, r=1, t=1, b=8),
             plot_bgcolor="white",
-            paper_bgcolor="white"
+            paper_bgcolor="white",
+            annotations=[
+                dict(
+                    text=f"<b>Legend / Codebook:</b><br>{codebook_text}",
+                    xref="paper",
+                    yref="paper",
+                    x=0,
+                    y=0,
+                    showarrow=False,
+                    align="left",
+                    xanchor="left",
+                    yanchor="bottom",
+                    font=dict(size=10),
+                )
+            ],
         )
 
         return fig
+
 
     @render_plotly
     def rating_bar():
@@ -344,7 +414,7 @@ def server(input, output, session):
             showlegend=False,
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=5,b=5),
+            margin=dict(l=1,r=1,t=1,b=1),
             xaxis_title="",
             yaxis_title="Avg Rating",
             yaxis=dict(range=y_range)
@@ -362,7 +432,7 @@ def server(input, output, session):
         fig.update_layout(
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=5,b=5)
+            margin=dict(l=5,r=5,t=5,b=1)
         )
 
         return fig
@@ -395,7 +465,7 @@ def server(input, output, session):
 
         fig.update_layout(
             showlegend=False,
-            margin=dict(l=0, r=0, t=0, b=0),
+            margin=dict(l=0, r=0, t=0, b=1),
             plot_bgcolor="white",
             paper_bgcolor="white"
         )
@@ -443,7 +513,7 @@ def server(input, output, session):
         fig.update_layout(
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=5,b=5)
+            margin=dict(l=1,r=1,t=1,b=1)
         )
         return fig
     
