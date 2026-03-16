@@ -50,11 +50,12 @@ flowchart TD
   F --> T1([total_bookings])
   F --> T2([total_revenue])
   F --> T3([canceled_bookings])
-  F --> P1([rating_bar])
   F --> P2([line_chart])
   F --> P4([sunburst_chart])
 
   G --> P3([pie_chart])
+  G --> P1([rating_bar])
+
   
   VL --> VS1([vehicle_suffix_bookings])
   VL --> VS2([vehicle_suffix_revenue])
