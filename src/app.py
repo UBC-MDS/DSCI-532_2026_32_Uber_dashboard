@@ -167,6 +167,7 @@ app_ui = ui.page_fluid(
                                         ui.HTML('<i class="fa-solid fa-car kpi-icon"></i>'),
                                         ui.div("Total Bookings")
                                     ], class_="kpi-row"),
+                                    ui.div(ui.output_text("vehicle_suffix_bookings"), style="font-size:11px;font-weight:500;text-align:center;min-height:16px;"),
                                     ui.div(ui.output_text("total_bookings"), class_="kpi-value")
                                 ]),
                                 class_="kpi-card"
@@ -177,6 +178,7 @@ app_ui = ui.page_fluid(
                                         ui.HTML('<i class="fa-solid fa-dollar-sign kpi-icon"></i>'),
                                         ui.div("Total Revenue")
                                     ], class_="kpi-row"),
+                                    ui.div(ui.output_text("vehicle_suffix_revenue"), style="font-size:11px;font-weight:500;text-align:center;min-height:16px;"),
                                     ui.div(ui.output_text("total_revenue"), class_="kpi-value")
                                 ]),
                                 class_="kpi-card"
@@ -185,8 +187,9 @@ app_ui = ui.page_fluid(
                                 ui.div([
                                     ui.div([
                                         ui.HTML('<i class="fa-solid fa-handshake-slash kpi-icon"></i>'),
-                                        ui.div("Canceled Bookings")
+                                        ui.div("Cancelled Bookings")
                                     ], class_="kpi-row"),
+                                    ui.div(ui.output_text("vehicle_suffix_cancelled"), style="font-size:11px;font-weight:500;text-align:center;min-height:16px;"),
                                     ui.div(ui.output_text("canceled_bookings"), class_="kpi-value")
                                 ]),
                                 class_="kpi-card"
@@ -195,7 +198,7 @@ app_ui = ui.page_fluid(
                             style="gap:4px;margin-bottom:4px;"
                         ),
                         ui.card(
-                            ui.card_header("Booking Status Breakdown"),
+                            ui.card_header(ui.output_text("sunburst_title")),
                             output_widget("sunburst_chart"),
                             style="height:600px;padding:0;margin:0;"
                         )
@@ -208,7 +211,7 @@ app_ui = ui.page_fluid(
                             style="height:275px;margin-bottom:4px;padding:0;"
                         ),
                         ui.card(
-                            ui.card_header("Total Booking Value Over Time"),
+                            ui.card_header(ui.output_text("line_chart_title")),
                             output_widget("line_chart"),
                             style="height:205px;margin-bottom:4px;padding:0;"
                         ),
@@ -267,14 +270,6 @@ app_ui = ui.page_fluid(
 def server(input, output, session):
     qc_vals = qc.server()
 
-    # @reactive.calc
-    # def filtered_data():
-    #     df = uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
-    #     selected = input.vehicle_type()
-    #     if selected and "All" not in selected:
-    #         df = df[df.Vehicle_Type.isin(selected)]
-    #     return df
-
     @reactive.calc
     def filtered_data_date_only():
         return uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
@@ -283,7 +278,7 @@ def server(input, output, session):
     def reset_filters():
         if input.action_button() > 0:
             ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
-            ui.update_selectize("vehicle_type", selected=["All"])
+            ui.update_selectize("vehicle_type", selected=[])
             
     @reactive.calc
     def filtered_data():
@@ -293,7 +288,38 @@ def server(input, output, session):
             df = df[df.Vehicle_Type.isin(selected)]
         # if nothing selected → return all rows
         return df
+    
+    @reactive.calc
+    def vehicle_label():
+        selected = list(input.vehicle_type())
+        if len(selected) == 1:
+            return f": {selected[0]}"
+        elif len(selected) > 1:
+            return f": {', '.join(selected)}"
+        return "" 
+    
+    @render.text
+    def line_chart_title():
+        return f"Total Booking Value Over Time{vehicle_label()}"
+    
+    @render.text
+    def sunburst_title():
+        return f"Booking Status Breakdown{vehicle_label()}"
 
+    @render.text
+    def vehicle_suffix_bookings():
+        selected = list(input.vehicle_type())
+        return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
+
+    @render.text
+    def vehicle_suffix_revenue():
+        selected = list(input.vehicle_type())
+        return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
+
+    @render.text
+    def vehicle_suffix_cancelled():
+        selected = list(input.vehicle_type())
+        return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
 
     # ---------------- KPI VALUES ----------------
     @render.text
@@ -309,7 +335,7 @@ def server(input, output, session):
         df = filtered_data()
         count = df[df.Cancelled_Rides_by_Driver == 1].shape[0] + df[df.Cancelled_Rides_by_Customer == 1].shape[0]
         return shiny_human_format(count)
-    
+                
     # ---------------- CHARTS ----------------
     @render_plotly
     def sunburst_chart():
@@ -396,11 +422,10 @@ def server(input, output, session):
         )
 
         return fig
-
-
+    
     @render_plotly
     def rating_bar():
-        df = filtered_data()
+        df = filtered_data_date_only()
         avg = df.groupby("Vehicle_Type")["Driver_Ratings"].mean().reset_index()
 
         min_val = avg["Driver_Ratings"].min()
@@ -428,8 +453,23 @@ def server(input, output, session):
             yaxis_title="Avg Rating",
             yaxis=dict(range=y_range)
         )
+        
+        fig_widget = go.FigureWidget(fig)
+        
+        def on_bar_click(trace, points, state):
+            if points.point_inds:
+                vehicle = trace.x[points.point_inds[0]]
+                current = list(input.vehicle_type())
+                if len(current) == 1 and vehicle in current:
+                    ui.update_selectize("vehicle_type", selected=[])   # toggle off
+                else:
+                    ui.update_selectize("vehicle_type", selected=[vehicle])
 
-        return fig
+
+        for trace in fig_widget.data:
+            trace.on_click(on_bar_click)
+
+        return fig_widget
 
     @render_plotly
     def line_chart():
@@ -445,7 +485,7 @@ def server(input, output, session):
         )
 
         return fig
-
+            
     @render_plotly
     def pie_chart():
         df = filtered_data_date_only()
@@ -478,8 +518,21 @@ def server(input, output, session):
             plot_bgcolor="white",
             paper_bgcolor="white"
         )
+        
+        fig_widget = go.FigureWidget(fig)
 
-        return fig
+        def on_pie_click(trace, points, state):
+            if points.point_inds:
+                vehicle = trace.labels[points.point_inds[0]]
+                current = list(input.vehicle_type())
+                if len(current) == 1 and vehicle in current:
+                    ui.update_selectize("vehicle_type", selected=[])   # toggle off
+                else:
+                    ui.update_selectize("vehicle_type", selected=[vehicle])
+
+        fig_widget.data[0].on_click(on_pie_click)
+
+        return fig_widget
     
     @render.data_frame
     def qc_data_table():
