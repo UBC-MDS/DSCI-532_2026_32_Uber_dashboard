@@ -24,9 +24,9 @@
 | `total_bookings` |	Output	  | `@render.text`          | 	`filtered_data`	           | #1 |
 | `total_revenue`  |	Output	  | `@render.text`          | 	`filtered_data`	           | #1 |
 | `canceled_bookings` |	Output	| `@render.text` 	        |   `filtered_data`            | #3 |
-| `vehicle_suffix_bookings` | Output |    | `@render.text`          |   `vehicle_label`            | #1 |
-| `vehicle_suffix_revenue`  | Output |     | `@render.text`          |   `vehicle_label`            | #1 |
-| `vehicle_suffix_cancelled` | Output |    | `@render.text`          |   `vehicle_label`            | #1 |
+| `vehicle_suffix_bookings` | Output |     `@render.text`          |   `vehicle_label`            | #1 |
+| `vehicle_suffix_revenue`  | Output |      `@render.text`          |   `vehicle_label`            | #1 |
+| `vehicle_suffix_cancelled` | Output |     `@render.text`          |   `vehicle_label`            | #1 |
 | `line_chart_title` | Output   | `@render.text`          | `vehicle_label`              | #4 | 
 | `sunburst_title` | Output     | `@render.text`          | `vehicle_label`              | #6 | 
 | `rating_bar` |	Output	  | `@render_plotly`        |  	`filtered_data_date_only`        	   | #5 |
