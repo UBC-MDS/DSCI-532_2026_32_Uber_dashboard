@@ -69,7 +69,7 @@ def shiny_human_format(num):
 # ---------------- UI ----------------
 app_ui = ui.page_fluid(
     ui.navset_tab(
-        ui.nav_panel("Original Dashboard",
+        ui.nav_panel("Home",
             ui.tags.link(
                 rel="stylesheet",
                 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -82,18 +82,42 @@ app_ui = ui.page_fluid(
                     margin:0;
                     padding:0;
                     overflow:hidden !important;
-                    background:#f8f9fb;
+                    background: var(--bs-body-bg);
+                    color: var(--bs-body-color);
+                }
+                          
+                .dashboard-title {
+                    font-size: 16px;
+                    font-weight: 800;
+                }
+                          
+                .dashboard-header {
+                    display: flex;
+                    flex-direction: row;
+                    padding: 2px 8px;
+                }
+                
+                .theme-toggle-wrap {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-left: 25px;
                 }
 
+                .theme-label {
+                    font-size: 12px;
+                    color: var(--bs-body-color);
+                }
+                        
                 #root, .bslib-page-fillable, .container-fluid {
                     height:100vh !important;
                     width:100vw !important;
                     overflow:hidden !important;
                 }
 
-                nav[data-tab="AI-Powered Dashboard"] .sidebar,
-                [data-nav-panel="AI-Powered Dashboard"] .sidebar,
-                .page-sidebar[data-current-nav="AI-Powered Dashboard"] .sidebar {
+                nav[data-tab="AI-Powered"] .sidebar,
+                [data-nav-panel="AI-Powered"] .sidebar,
+                .page-sidebar[data-current-nav="AI-Powered"] .sidebar {
                     overflow: visible !important;
                     height: 100% !important;
                 }
@@ -109,7 +133,7 @@ app_ui = ui.page_fluid(
                 }
 
                 /* Original dashboard sidebar */
-                .nav-panel:not([data-tab="AI-Powered Dashboard"]) .sidebar,
+                .nav-panel:not([data-tab="AI-Powered"]) .sidebar,
                 .layout-sidebar:not(.page-sidebar) .sidebar {
                     overflow: hidden !important;
                 }
@@ -125,7 +149,11 @@ app_ui = ui.page_fluid(
 
                 .kpi-card {
                     border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
-                    padding:0px; text-align:center; background:white;
+                    padding:0px;
+                    text-align:center;
+                    background: var(--bs-body-bg);
+                    color: var(--bs-body-color);
+                    border: 1px solid var(--bs-border-color);
                 }
 
                 .kpi-row {
@@ -138,7 +166,10 @@ app_ui = ui.page_fluid(
 
                 .card {
                     border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
-                    background:white; padding:0; margin:0; overflow:hidden;
+                    background: var(--bs-body-bg);
+                    color: var(--bs-body-color);
+                    border: 1px solid var(--bs-border-color);
+                    padding:0; margin:0; overflow:hidden;
                 }
 
                 .card-header {
@@ -147,10 +178,14 @@ app_ui = ui.page_fluid(
             """),
 
             ui.div(
-                "Uber Data Visualization Dashboard",
-                style="font-size:16px;font-weight:800;text-align:center;padding:2px 0;"
+                ui.div("Uber Data Visualization Dashboard", class_="dashboard-title"),
+                ui.div(
+                    ui.span("Theme", class_="theme-label"),
+                    ui.input_dark_mode(id="theme_mode"),
+                    class_="theme-toggle-wrap",
+                ),
+                class_="dashboard-header"
             ),
-
             # ---------------- SIDEBAR + MAIN ----------------
             ui.layout_sidebar(
                 ui.sidebar(
@@ -189,6 +224,7 @@ app_ui = ui.page_fluid(
                                         ui.HTML('<i class="fa-solid fa-car kpi-icon"></i>'),
                                         ui.div("Total Bookings")
                                     ], class_="kpi-row"),
+                                    ui.div(ui.output_text("vehicle_suffix_bookings"), style="font-size:11px;font-weight:500;text-align:center;min-height:16px;"),
                                     ui.div(ui.output_text("total_bookings"), class_="kpi-value")
                                 ]),
                                 class_="kpi-card"
@@ -199,6 +235,7 @@ app_ui = ui.page_fluid(
                                         ui.HTML('<i class="fa-solid fa-dollar-sign kpi-icon"></i>'),
                                         ui.div("Total Revenue")
                                     ], class_="kpi-row"),
+                                    ui.div(ui.output_text("vehicle_suffix_revenue"), style="font-size:11px;font-weight:500;text-align:center;min-height:16px;"),
                                     ui.div(ui.output_text("total_revenue"), class_="kpi-value")
                                 ]),
                                 class_="kpi-card"
@@ -207,8 +244,9 @@ app_ui = ui.page_fluid(
                                 ui.div([
                                     ui.div([
                                         ui.HTML('<i class="fa-solid fa-handshake-slash kpi-icon"></i>'),
-                                        ui.div("Canceled Bookings")
+                                        ui.div("Cancelled Bookings")
                                     ], class_="kpi-row"),
+                                    ui.div(ui.output_text("vehicle_suffix_cancelled"), style="font-size:11px;font-weight:500;text-align:center;min-height:16px;"),
                                     ui.div(ui.output_text("canceled_bookings"), class_="kpi-value")
                                 ]),
                                 class_="kpi-card"
@@ -217,7 +255,7 @@ app_ui = ui.page_fluid(
                             style="gap:4px;margin-bottom:4px;"
                         ),
                         ui.card(
-                            ui.card_header("Booking Status Breakdown"),
+                            ui.card_header(ui.output_text("sunburst_title")),
                             output_widget("sunburst_chart"),
                             style="height:600px;padding:0;margin:0;"
                         )
@@ -230,12 +268,12 @@ app_ui = ui.page_fluid(
                             style="height:275px;margin-bottom:4px;padding:0;"
                         ),
                         ui.card(
-                            ui.card_header("Total Booking Value Over Time"),
+                            ui.card_header(ui.output_text("line_chart_title")),
                             output_widget("line_chart"),
                             style="height:205px;margin-bottom:4px;padding:0;"
                         ),
                         ui.card(
-                            ui.card_header("Avg Driver Rating by Vehicle Type"),
+                            ui.card_header("Average Driver Rating by Vehicle Type"),
                             output_widget("rating_bar"),
                             style="height:195px;margin-bottom:4px;padding:0;"
                         )
@@ -246,7 +284,7 @@ app_ui = ui.page_fluid(
             )
         ),
 
-        ui.nav_panel("AI-Powered Dashboard",
+        ui.nav_panel("AI-Powered",
             ui.page_sidebar(
                 qc.sidebar(),
                 ui.div(
@@ -282,7 +320,7 @@ app_ui = ui.page_fluid(
             )
         )
     ),
-    title="Uber AI-Powered Dashboard"
+    title="Uber AI-Powered"
 )
 
 # ---------------- SERVER ----------------
@@ -322,7 +360,7 @@ def server(input, output, session):
     def reset_filters():
         if input.action_button() > 0:
             ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
-            ui.update_selectize("vehicle_type", selected=["All"])
+            ui.update_selectize("vehicle_type", selected=[])
             
     @reactive.calc
     def filtered_data():
@@ -332,7 +370,53 @@ def server(input, output, session):
             df = df[df.Vehicle_Type.isin(selected)]
         # if nothing selected → return all rows
         return df
+    
+    @reactive.calc
+    def vehicle_label():
+        selected = list(input.vehicle_type())
+        if len(selected) == 1:
+            return f": {selected[0]}"
+        elif len(selected) > 1:
+            return f": {', '.join(selected)}"
+        return "" 
+    
+    @render.text
+    def line_chart_title():
+        return f"Total Booking Value Over Time{vehicle_label()}"
+    
+    @render.text
+    def sunburst_title():
+        return f"Booking Status Breakdown{vehicle_label()}"
 
+    @render.text
+    def vehicle_suffix_bookings():
+        selected = list(input.vehicle_type())
+        return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
+
+    @render.text
+    def vehicle_suffix_revenue():
+        selected = list(input.vehicle_type())
+        return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
+
+    @render.text
+    def vehicle_suffix_cancelled():
+        selected = list(input.vehicle_type())
+        return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
+    def plot_theme():
+        mode = input.theme_mode()
+        is_dark = mode in ("dark", True)
+
+        if is_dark:
+            return {
+                "text": "#e9ecef",
+                "grid": "#495057",
+                "axis": "#ced4da",
+            }
+        return {
+            "text": "#212529",
+            "grid": "#dee2e6",
+            "axis": "#495057",
+        }
 
     # ---------------- KPI VALUES ----------------
     @render.text
@@ -348,7 +432,7 @@ def server(input, output, session):
         df = filtered_data()
         count = df[df.Cancelled_Rides_by_Driver == 1].shape[0] + df[df.Cancelled_Rides_by_Customer == 1].shape[0]
         return shiny_human_format(count)
-    
+                
     # ---------------- CHARTS ----------------
     @render_plotly
     def sunburst_chart():
@@ -414,10 +498,13 @@ def server(input, output, session):
         # Codebook
         codebook_text = "<br>".join([f"{v} = {k}" for k, v in booking_status_issue_short.items()])
 
+        t = plot_theme()
         fig.update_layout(
             margin=dict(l=1, r=1, t=1, b=8),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
+
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+
             annotations=[
                 dict(
                     text=f"<b>Codebook:</b><br>{codebook_text}",
@@ -429,21 +516,20 @@ def server(input, output, session):
                     align="left",
                     xanchor="left",
                     yanchor="bottom",
-                    font=dict(size=10),
+                    font=dict(size=10, color=t["text"]),
                 )
             ],
         )
 
         return fig
-
-
+    
     @render_plotly
     def rating_bar():
-        df = filtered_data()
+        df = filtered_data_date_only()
         avg = df.groupby("Vehicle_Type")["Driver_Ratings"].mean().reset_index()
 
         min_val = avg["Driver_Ratings"].min()
-        max_val = avg["Driver_Ratings"].max()
+        max_val = avg["Driver_Ratings"].max()+0.005
         padding = (max_val - min_val) * 0.05
         y_range = [min_val - padding, max_val + padding]
 
@@ -458,35 +544,91 @@ def server(input, output, session):
 
         fig.update_traces(texttemplate="%{text:.4f}", textposition="outside")
 
+        t = plot_theme()
         fig.update_layout(
             showlegend=False,
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=1,r=1,t=1,b=1),
+            margin=dict(l=5,r=5,t=25,b=5),
             xaxis_title="",
-            yaxis_title="Avg Rating",
-            yaxis=dict(range=y_range)
+            yaxis_title="Average Rating",
+            font=dict(color=t["text"]),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+                range=y_range
+            )
         )
+        
+        fig_widget = go.FigureWidget(fig)
+        
+        def on_bar_click(trace, points, state):
+            if points.point_inds:
+                vehicle = trace.x[points.point_inds[0]]
+                current = list(input.vehicle_type())
+                if len(current) == 1 and vehicle in current:
+                    ui.update_selectize("vehicle_type", selected=[])   # toggle off
+                else:
+                    ui.update_selectize("vehicle_type", selected=[vehicle])
 
-        return fig
+
+        for trace in fig_widget.data:
+            trace.on_click(on_bar_click)
+
+        return fig_widget
 
     @render_plotly
     def line_chart():
         df = filtered_data()
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
 
-        fig = px.line(df_agg, x="Date", y="Booking_Value")
+        # ------------------ Add Moving Average ------------------
+        window_size = 7  # 7-day moving average; you can change to 3, 14, etc.
+        df_agg['Booking_Value_MA'] = df_agg['Booking_Value'].rolling(
+            window=window_size, min_periods=1, center=True
+            ).mean()
 
+
+        fig = px.line(
+            df_agg, 
+            x="Date", 
+            y="Booking_Value_MA",
+            labels={"Booking_Value_MA": "Booking Value"},
+            title=f"({window_size}-Day Moving Average)"
+            )
+
+        t = plot_theme()
         fig.update_layout(
             plot_bgcolor="white",
             paper_bgcolor="white",
             xaxis_title="",
             yaxis_title="Booking Val.",
             margin=dict(l=5,r=5,t=20,b=20)
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=5,r=5,t=45,b=15),
+            font=dict(color=t["text"]),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+
         )
 
         return fig
-
+            
     @render_plotly
     def pie_chart():
         df = filtered_data_date_only()
@@ -513,14 +655,46 @@ def server(input, output, session):
             )
         )
 
+        # fig.update_layout(
+        #     showlegend=False,
+        #     margin=dict(l=0, r=0, t=0, b=1),
+        #     plot_bgcolor="white",
+        #     paper_bgcolor="white"
+        # )
+        t = plot_theme()
         fig.update_layout(
             showlegend=False,
             margin=dict(l=0, r=0, t=0, b=1),
-            plot_bgcolor="white",
-            paper_bgcolor="white"
-        )
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=t["text"]),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
 
-        return fig
+        )
+        
+        fig_widget = go.FigureWidget(fig)
+
+        def on_pie_click(trace, points, state):
+            if points.point_inds:
+                vehicle = trace.labels[points.point_inds[0]]
+                current = list(input.vehicle_type())
+                if len(current) == 1 and vehicle in current:
+                    ui.update_selectize("vehicle_type", selected=[])   # toggle off
+                else:
+                    ui.update_selectize("vehicle_type", selected=[vehicle])
+
+        fig_widget.data[0].on_click(on_pie_click)
+
+        return fig_widget
     
     @render.data_frame
     def qc_data_table():
@@ -543,11 +717,22 @@ def server(input, output, session):
         )
         
         fig.update_traces(textinfo="percent+label", textposition="inside")
+        t = plot_theme()
         fig.update_layout(
             showlegend=False,
             margin=dict(l=0,r=0,t=0,b=0),
-            plot_bgcolor="white",
-            paper_bgcolor="white"
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
         )
         return fig
     
@@ -560,10 +745,22 @@ def server(input, output, session):
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
         
         fig = px.line(df_agg, x="Date", y="Booking_Value")
+        t = plot_theme()
         fig.update_layout(
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=1,r=1,t=1,b=1)
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=1,r=1,t=1,b=1),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+
         )
         return fig
     
