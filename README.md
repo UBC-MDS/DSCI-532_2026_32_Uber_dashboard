@@ -41,12 +41,35 @@ This will start the Shiny app, and you can access it in your web browser. The da
 The dashboard is deployed on posit cloud, and the preview build version can be accessed at the following URL: https://019cca41-6593-d698-f198-826bf5222992.share.connect.posit.cloud/ .The stable build version can be accessed at the following URL: https://019cca3c-2682-2efd-8947-1fd5caf109bc.share.connect.posit.cloud/ . This allows users to interact with the dashboard without needing to run it locally, providing easy access to the insights derived from Uber's 2024 ride data.
 
 
+
+
+## Running Tests in Headed Mode (Playwright + Pytest)
+
+To run browser tests with a visible UI (headed mode), you need the Playwright plugin for pytest. By default, `pytest` alone does not recognize the `--headed` option.
+
+### 1. Install the Playwright Pytest Plugin
+
+Install the plugin that integrates Playwright with pytest:
+
+```bash
+pip install pytest-playwright
+```
+
+### 2. Install Playwright Browsers
+
+After installing the plugin, download the browsers required by Playwright:
+```bash
+playwright install
+```
+
+### 3. Run Tests in Headed Mode
+You can now run tests with the browser UI visible:
+```bash
+pytest --headed
+```
+
+
 ## Demo
 ![App Demo](img/demo.gif)
-
-
-
-
-
 
 
