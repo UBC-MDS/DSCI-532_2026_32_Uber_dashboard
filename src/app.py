@@ -49,7 +49,7 @@ def shiny_human_format(num):
 # ---------------- UI ----------------
 app_ui = ui.page_fluid(
     ui.navset_tab(
-        ui.nav_panel("Original Dashboard",
+        ui.nav_panel("Home",
             ui.tags.link(
                 rel="stylesheet",
                 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -95,9 +95,9 @@ app_ui = ui.page_fluid(
                     overflow:hidden !important;
                 }
 
-                nav[data-tab="AI-Powered Dashboard"] .sidebar,
-                [data-nav-panel="AI-Powered Dashboard"] .sidebar,
-                .page-sidebar[data-current-nav="AI-Powered Dashboard"] .sidebar {
+                nav[data-tab="AI-Powered"] .sidebar,
+                [data-nav-panel="AI-Powered"] .sidebar,
+                .page-sidebar[data-current-nav="AI-Powered"] .sidebar {
                     overflow: visible !important;
                     height: 100% !important;
                 }
@@ -113,7 +113,7 @@ app_ui = ui.page_fluid(
                 }
 
                 /* Original dashboard sidebar */
-                .nav-panel:not([data-tab="AI-Powered Dashboard"]) .sidebar,
+                .nav-panel:not([data-tab="AI-Powered"]) .sidebar,
                 .layout-sidebar:not(.page-sidebar) .sidebar {
                     overflow: hidden !important;
                 }
@@ -251,7 +251,7 @@ app_ui = ui.page_fluid(
                             style="height:205px;margin-bottom:4px;padding:0;"
                         ),
                         ui.card(
-                            ui.card_header("Avg Driver Rating by Vehicle Type"),
+                            ui.card_header("Average Driver Rating by Vehicle Type"),
                             output_widget("rating_bar"),
                             style="height:195px;margin-bottom:4px;padding:0;"
                         )
@@ -262,7 +262,7 @@ app_ui = ui.page_fluid(
             )
         ),
 
-        ui.nav_panel("AI-Powered Dashboard",
+        ui.nav_panel("AI-Powered",
             ui.page_sidebar(
                 qc.sidebar(),
                 ui.div(
@@ -298,7 +298,7 @@ app_ui = ui.page_fluid(
             )
         )
     ),
-    title="Uber AI-Powered Dashboard"
+    title="Uber AI-Powered"
 )
 
 # ---------------- SERVER ----------------
@@ -504,7 +504,7 @@ def server(input, output, session):
             paper_bgcolor="white",
             margin=dict(l=5,r=5,t=25,b=5),
             xaxis_title="",
-            yaxis_title="Avg Rating",
+            yaxis_title="Average Rating",
             font=dict(color=t["text"]),
             xaxis=dict(
                 tickfont=dict(color=t["axis"]),
@@ -552,8 +552,8 @@ def server(input, output, session):
             df_agg, 
             x="Date", 
             y="Booking_Value_MA",
-            labels={"Booking_Value_MA": "Booking Val MA"},
-            title=f"Total Booking Value Over Time({window_size}-Day MA)"
+            labels={"Booking_Value_MA": "Booking Value"},
+            title=f"({window_size}-Day Moving Average)"
             )
 
         t = plot_theme()
