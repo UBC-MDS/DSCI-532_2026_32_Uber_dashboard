@@ -62,9 +62,33 @@ app_ui = ui.page_fluid(
                     margin:0;
                     padding:0;
                     overflow:hidden !important;
-                    background:#f8f9fb;
+                    background: var(--bs-body-bg);
+                    color: var(--bs-body-color);
+                }
+                          
+                .dashboard-title {
+                    font-size: 16px;
+                    font-weight: 800;
+                }
+                          
+                .dashboard-header {
+                    display: flex;
+                    flex-direction: row;
+                    padding: 2px 8px;
+                }
+                
+                .theme-toggle-wrap {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-left: 25px;
                 }
 
+                .theme-label {
+                    font-size: 12px;
+                    color: var(--bs-body-color);
+                }
+                        
                 #root, .bslib-page-fillable, .container-fluid {
                     height:100vh !important;
                     width:100vw !important;
@@ -105,7 +129,11 @@ app_ui = ui.page_fluid(
 
                 .kpi-card {
                     border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
-                    padding:0px; text-align:center; background:white;
+                    padding:0px;
+                    text-align:center;
+                    background: var(--bs-body-bg);
+                    color: var(--bs-body-color);
+                    border: 1px solid var(--bs-border-color);
                 }
 
                 .kpi-row {
@@ -118,7 +146,10 @@ app_ui = ui.page_fluid(
 
                 .card {
                     border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
-                    background:white; padding:0; margin:0; overflow:hidden;
+                    background: var(--bs-body-bg);
+                    color: var(--bs-body-color);
+                    border: 1px solid var(--bs-border-color);
+                    padding:0; margin:0; overflow:hidden;
                 }
 
                 .card-header {
@@ -127,10 +158,14 @@ app_ui = ui.page_fluid(
             """),
 
             ui.div(
-                "Uber Data Visualization Dashboard",
-                style="font-size:16px;font-weight:800;text-align:center;padding:2px 0;"
+                ui.div("Uber Data Visualization Dashboard", class_="dashboard-title"),
+                ui.div(
+                    ui.span("Theme", class_="theme-label"),
+                    ui.input_dark_mode(id="theme_mode"),
+                    class_="theme-toggle-wrap",
+                ),
+                class_="dashboard-header"
             ),
-
             # ---------------- SIDEBAR + MAIN ----------------
             ui.layout_sidebar(
                 ui.sidebar(
@@ -320,6 +355,21 @@ def server(input, output, session):
     def vehicle_suffix_cancelled():
         selected = list(input.vehicle_type())
         return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
+    def plot_theme():
+        mode = input.theme_mode()
+        is_dark = mode in ("dark", True)
+
+        if is_dark:
+            return {
+                "text": "#e9ecef",
+                "grid": "#495057",
+                "axis": "#ced4da",
+            }
+        return {
+            "text": "#212529",
+            "grid": "#dee2e6",
+            "axis": "#495057",
+        }
 
     # ---------------- KPI VALUES ----------------
     @render.text
@@ -401,10 +451,13 @@ def server(input, output, session):
         # Codebook
         codebook_text = "<br>".join([f"{v} = {k}" for k, v in booking_status_issue_short.items()])
 
+        t = plot_theme()
         fig.update_layout(
             margin=dict(l=1, r=1, t=1, b=8),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
+
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+
             annotations=[
                 dict(
                     text=f"<b>Codebook:</b><br>{codebook_text}",
@@ -416,7 +469,7 @@ def server(input, output, session):
                     align="left",
                     xanchor="left",
                     yanchor="bottom",
-                    font=dict(size=10),
+                    font=dict(size=10, color=t["text"]),
                 )
             ],
         )
@@ -429,7 +482,7 @@ def server(input, output, session):
         avg = df.groupby("Vehicle_Type")["Driver_Ratings"].mean().reset_index()
 
         min_val = avg["Driver_Ratings"].min()
-        max_val = avg["Driver_Ratings"].max()
+        max_val = avg["Driver_Ratings"].max()+0.005
         padding = (max_val - min_val) * 0.05
         y_range = [min_val - padding, max_val + padding]
 
@@ -444,14 +497,26 @@ def server(input, output, session):
 
         fig.update_traces(texttemplate="%{text:.4f}", textposition="outside")
 
+        t = plot_theme()
         fig.update_layout(
             showlegend=False,
             plot_bgcolor="white",
             paper_bgcolor="white",
-            margin=dict(l=1,r=1,t=1,b=1),
+            margin=dict(l=5,r=5,t=25,b=5),
             xaxis_title="",
             yaxis_title="Avg Rating",
-            yaxis=dict(range=y_range)
+            font=dict(color=t["text"]),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+                range=y_range
+            )
         )
         
         fig_widget = go.FigureWidget(fig)
@@ -476,12 +541,38 @@ def server(input, output, session):
         df = filtered_data()
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
 
-        fig = px.line(df_agg, x="Date", y="Booking_Value")
+        # ------------------ Add Moving Average ------------------
+        window_size = 7  # 7-day moving average; you can change to 3, 14, etc.
+        df_agg['Booking_Value_MA'] = df_agg['Booking_Value'].rolling(
+            window=window_size, min_periods=1, center=True
+            ).mean()
 
+
+        fig = px.line(
+            df_agg, 
+            x="Date", 
+            y="Booking_Value_MA",
+            labels={"Booking_Value_MA": "Booking Val MA"},
+            title=f"Total Booking Value Over Time({window_size}-Day MA)"
+            )
+
+        t = plot_theme()
         fig.update_layout(
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=5,b=1)
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=5,r=5,t=45,b=15),
+            font=dict(color=t["text"]),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+
         )
 
         return fig
@@ -512,11 +603,30 @@ def server(input, output, session):
             )
         )
 
+        # fig.update_layout(
+        #     showlegend=False,
+        #     margin=dict(l=0, r=0, t=0, b=1),
+        #     plot_bgcolor="white",
+        #     paper_bgcolor="white"
+        # )
+        t = plot_theme()
         fig.update_layout(
             showlegend=False,
             margin=dict(l=0, r=0, t=0, b=1),
-            plot_bgcolor="white",
-            paper_bgcolor="white"
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=t["text"]),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+
         )
         
         fig_widget = go.FigureWidget(fig)
@@ -555,11 +665,22 @@ def server(input, output, session):
         )
         
         fig.update_traces(textinfo="percent+label", textposition="inside")
+        t = plot_theme()
         fig.update_layout(
             showlegend=False,
             margin=dict(l=0,r=0,t=0,b=0),
-            plot_bgcolor="white",
-            paper_bgcolor="white"
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
         )
         return fig
     
@@ -572,10 +693,22 @@ def server(input, output, session):
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
         
         fig = px.line(df_agg, x="Date", y="Booking_Value")
+        t = plot_theme()
         fig.update_layout(
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=1,r=1,t=1,b=1)
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=1,r=1,t=1,b=1),
+            xaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+            yaxis=dict(
+                tickfont=dict(color=t["axis"]),
+                title_font=dict(color=t["axis"]),
+                gridcolor=t["grid"],
+            ),
+
         )
         return fig
     
