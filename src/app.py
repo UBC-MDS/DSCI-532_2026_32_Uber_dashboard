@@ -7,16 +7,34 @@ from pathlib import Path
 from dotenv import load_dotenv
 import querychat
 from chatlas import ChatGithub
+import ibis
 import plotly.graph_objects as go
 
 
 # ---------------- DATA ----------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-csv_path = os.path.join(BASE_DIR, "..", "data", "raw", "ncr_ride_bookings.csv")
 
-uber = pd.read_csv(csv_path)
-uber.columns = uber.columns.str.replace(' ', '_')
-uber["Date"] = pd.to_datetime(uber["Date"]).dt.date
+
+# Load processed dataset
+BASE_DIR = Path(__file__).parent
+csv_path = BASE_DIR.parent / "data" / "raw"/ "ncr_ride_bookings.csv"
+csv_path.parent.mkdir(parents=True, exist_ok=True)
+parquet_path = BASE_DIR.parent / "data" / "processed"/ "ncr_ride_bookings.parquet"
+
+# If parquet exists, load it; else create it once
+if os.path.exists(parquet_path):
+    uber = pd.read_parquet(parquet_path)
+else:
+    uber = pd.read_csv(csv_path)
+    uber.to_parquet(parquet_path, engine="pyarrow", index=False)
+
+
+# Connect to DuckDB
+con = ibis.duckdb.connect()  # creates file-based DB
+uber_table = con.read_parquet(parquet_path)
+
+
+uber.columns = uber.columns.str.replace(" ", "_", regex=False)
+uber["Date"] = pd.to_datetime(uber["Date"])
 
 uber['Issue_Reason'] = (
     uber['Reason_for_cancelling_by_Customer']
@@ -24,7 +42,9 @@ uber['Issue_Reason'] = (
     .fillna(uber['Incomplete_Rides_Reason'])
     .fillna('')
 )
-
+for col in uber.columns:
+    if uber[col].dtype.kind not in ('M', 'i', 'u', 'f', 'b'):  # skip datetime, int, float, bool
+        uber[col] = uber[col].astype(object)
 # ---------------- querychat setup ----------------
 # Load .env from the same directory
 load_dotenv(Path(__file__).parent / ".env")
@@ -176,7 +196,9 @@ app_ui = ui.page_fluid(
                             "Date range",
                             min=uber.Date.min(),
                             max=uber.Date.max(),
-                            value=[uber.Date.min(), uber.Date.max()],
+                            value=[uber.Date.min(), uber.Date.max()], 
+                            time_format="%Y-%m-%d",
+                            timezone="UTC"
                         ),
                         style="margin-left:10px; margin-right:10px;"  # extra space for min/max labels
                     ),
@@ -304,6 +326,31 @@ app_ui = ui.page_fluid(
 # ---------------- SERVER ----------------
 def server(input, output, session):
     qc_vals = qc.server()
+
+    @reactive.calc
+    def filtered_data():
+        table = uber_table
+        table = table.mutate(Date=table.Date.cast('timestamp'))
+
+        date_min, date_max = input.slider()
+        date_min = pd.Timestamp(date_min)
+        date_max = pd.Timestamp(date_max)
+
+        table = table.filter(table.Date.between(date_min, date_max))  # also fixes the FutureWarning
+
+        selected = input.vehicle_type()
+        if selected and "All" not in selected:
+            table = table.filter(table.Vehicle_Type.isin(selected))
+
+        df = table.execute()
+        df.columns = df.columns.str.replace(" ", "_", regex=False)  # ← ADD THIS
+        df["Issue_Reason"] = (
+            df.get("Reason_for_cancelling_by_Customer", pd.Series(dtype=str))
+            .fillna(df.get("Driver_Cancellation_Reason", pd.Series(dtype=str)))
+            .fillna(df.get("Incomplete_Rides_Reason", pd.Series(dtype=str)))
+            .fillna('')
+        )
+        return df
 
     @reactive.calc
     def filtered_data_date_only():
@@ -558,6 +605,11 @@ def server(input, output, session):
 
         t = plot_theme()
         fig.update_layout(
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            xaxis_title="",
+            yaxis_title="Booking Val.",
+            margin=dict(l=5,r=5,t=20,b=20)
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             margin=dict(l=5,r=5,t=45,b=15),
