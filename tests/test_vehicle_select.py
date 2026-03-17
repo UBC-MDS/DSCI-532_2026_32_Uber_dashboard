@@ -1,0 +1,25 @@
+from shiny.pytest import create_app_fixture
+from shiny.playwright import controller
+from playwright.sync_api import Page
+from shiny.run import ShinyAppProc
+
+app = create_app_fixture("../src/app.py")
+
+def test_vehicle_select(page: Page, app: ShinyAppProc) -> None:
+    """Checks that selecting a vehicle type will render the correct 
+    number for the 'Total Bookings' output text.
+    """
+    page.goto(app.url)
+
+    total_bookings = controller.OutputText(page, "total_bookings")
+    selectize = controller.InputSelectize(page, "vehicle_type")
+
+    # initial state
+    selectize.expect_selected([])
+
+    # select vehicle
+    selectize.set("Auto")
+    selectize.expect_selected(["Auto"])
+
+    # total bookings for Auto and Bike should be 37K
+    total_bookings.expect_value("37K", timeout=20000)
