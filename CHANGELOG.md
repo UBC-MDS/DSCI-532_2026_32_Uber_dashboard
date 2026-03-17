@@ -6,21 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [0.4.0] - 2026-03-16
-This release expands more advanced feature, added test cases and parquet and also some UI issues fixed.
+## [0.4.0] - 2026-03-17
+This release introduces a database‑backed data pipeline with Parquet caching, 
+a dedicated data wrangling module, and a suite of automated tests, 
+while also refining UI interactions, filters, and chart readability across the dashboard.
 
 ### Added
-- Test cases #todo (need more explainaton)
-- Added code to app.py to convert csv to parquet
-- Connected to duckDB
-- dapted filtering to duckDB on the dashboard
-- #todo (the advanced feature)
+- Implemented an automated CSV‑to‑Parquet conversion pipeline: on first run, the raw `ncr_ride_bookings.csv` file is 
+  converted to `data/processed/ncr_ride_bookings.parquet` using PyArrow for faster subsequent loads. 
+- Created a cleaned Parquet dataset `(ncr_ride_bookings_clean.parquet)` that applies standardized column names, date parsing, and dtype cleaning, and serves as the source for the Ibis/DuckDB table
+- Ensured the `data/processed/` subdirectory is created automatically if it does not already exist, simplifying first‑time setup
+- Migrated data access from direct CSV loading to a DuckDB + Ibis workflow, enabling database‑backed analytics and caching of processed data for improved performance and scalability
+- Added ibis-framework and duckdb to the environment configuration and Python requirements to support the new data processing pipeline.
+- Introduced a dedicated data_wrangling function in `src/data_wrangling.py` to centralize data cleaning (column standardization, date conversions, unified Issue_Reason column, dtype enforcement).
+- Added `tests/test_data_wrangling.py` to validate that Issue_Reason is correctly generated and mapped to source columns for each booking status, ensuring data integrity for visualizations.
+- Added Playwright‑based UI tests for key interactions:
+  - Vehicle selection updates the “Total Bookings” KPI `(tests/test_vehicle_select.py)`.
+  - Date range slider filters data and updates “Total Revenue” `(tests/test_date_slider.py)`.
+  - Reset button restores default state and KPI values `(tests/test_reset_button.py)`.
+- Added click interaction on the vehicle pie chart and bar chart so that clicking a category filters the underlying reactive data and updates the line chart, booking status breakdown, and KPIs accordingly.
+- Added instructions in `README.md` for installing `pytest-playwright` and running Playwright tests (including headed mode and demo access instructions).
+- Added a dark mode
 
 
 ### Changed
 - For smaller slices in the pie chart, labels are positioned outside the chart with arrows pointing to the corresponding slice. This improves readability and ensures that the text remains legible even for small proportions.
 - In the Booking Status Breakdown visualization, abbreviated labels are used to reduce visual clutter. A codebook (legend) is provided below the figure to clearly define each abbreviation.
 - The explicit “All” option in the vehicle type filter was removed and replaced with an empty default selection. When no vehicle type is selected, the dashboard automatically displays data for all vehicle types.
+- Updated plot titles and axis labels (e.g., bar chart and “Total Booking Value Over Time” line chart) to be more descriptive and context‑aware
+- Updated the main navigation labels, renaming the opening tab from “Original Dashboard” to “Home” and the AI tab from “AI‑powered dashboard” to “AI‑powered” for concision
+- Updated the specification document (stories, reactivity diagram, etc.) to reflect new interactive elements such as the clickable pie chart and bar chart.
+- Updated the date range slider to include time_format = "%Y-%m-%d" and timezone = "UTC" so that timestamps are hidden from labels and dates are displayed clearly.
+- Made chart titles and subtitles reactive to user selections (e.g., clicked vehicle type), so that users can more easily understand which subset of data is being displayed.
 
 ### Fixed
 - Increased font size in Revenue Distribution by Vehicle Type.
@@ -32,22 +49,51 @@ This release expands more advanced feature, added test cases and parquet and als
 - Resolved the issue of booking value y-axis not showing in full.
 
 ### Known Issues
-- Adding dark mode switch 
 - Layout sizing is not fully responsive; components may appear larger or smaller depending on the device screen size.
 - The LLM feature occasionally crashes or fails to load; a page refresh resolves this
 ---
 
-#todo 
-### Release Highlight: [Name of your advanced feature]
-- **Option chosen:** D
-- **PR:** #...
-- **Why this option over the others:** <!-- 1–2 sentences; link to your feature prioritization issue -->
+### Release Highlight: [Click-to-Filter Vehicle Interaction]
+
+The advanced feature for this milestone is click-based vehicle type filtering, 
+which lets users filter the entire dashboard by clicking on a vehicle segment in the
+pie chart or a bar in the vehicle bar chart, rather than relying solely on dropdown controls. 
+When a user clicks a slice or bar, the underlying reactive data is filtered to that vehicle type, 
+and the line chart, booking status breakdown, KPIs, and titles update to reflect the selected subset, 
+making exploration feel more direct and intuitive.
+
+Option chosen: D (Component click event interaction)
+
+PR: #96
+
+Why this option over the others: We prioritized Option D because it delivers the most immediately visible gain in exploratory power for non-technical users: 
+a single click on a chart now behaves like a filter control, reducing friction compared to form-based inputs and making it easier to 
+“follow your curiosity” through the data. Options A–C are valuable, but they primarily deepen the AI/QueryChat experience, 
+whereas our user feedback and prioritization issue (#79) emphasized improving core visual interactivity and clarity in the main dashboard first.
+
 - **Feature prioritization issue link:** [#79](https://github.com/UBC-MDS/DSCI-532_2026_32_Uber_dashboard/issues/79)
 
 
 ### Collaboration
 
-The dashboard presents booking and revenue insights through clear visualizations and an organized layout, enabling users to quickly identify trends such as revenue distribution by vehicle type and booking status. Interactive charts and consistent styling improve readability and usability. However, some limitations remain, including limited filtering options and relatively simple interaction patterns, which may restrict deeper exploration of the data. Minor deviations from DSCI 531 visualization best practices were made to maintain layout clarity and prioritize readability within the available dashboard space.
+CONTRIBUTING.md: Updated in PR #102 with our M3 retrospective, new M4 collaboration norms, including review requirements and spec‑first changes.
+
+M3 retrospective: After M3, we recognized that some PRs were merged without review, occasionally bundled unrelated changes, 
+and did not always sync with the spec documents, which hurt traceability and team awareness. 
+We documented these issues explicitly in the retrospective and used them to define concrete M4 norms 
+(mandatory reviewer, commit relevance checks, spec updates before code).
+
+M4: In M4 we enforced that every PR is reviewed by a teammate who did not open it, 
+checked that commits are scoped to the issue at hand, and required spec updates ahead of implementation, 
+which led to cleaner diffs, fewer surprises in review, and better alignment between the app, tests, and documentation. 
+
+### Reflection
+
+The dashboard presents booking and revenue insights through clear visualizations and an organized layout, enabling users to quickly identify 
+trends such as revenue distribution by vehicle type and booking status. Interactive charts and consistent styling improve readability and usability. 
+However, some limitations remain, including limited filtering options and relatively simple interaction patterns, 
+which may restrict deeper exploration of the data. Minor deviations from DSCI 531 visualization best practices were made to maintain 
+layout clarity and prioritize readability within the available dashboard space.
 
 - Users can modify the date range to view filtered results for total bookings, total revenue, and canceled bookings within the selected period. The pie chart also displays the percentage distribution of bookings by vehicle type based on the selected filters.
 - The dashboard presents the average driver rating by vehicle type as a bar chart, with the ability to filter for one or multiple vehicle categories while maintaining a consistent color scheme across the dashboard.
