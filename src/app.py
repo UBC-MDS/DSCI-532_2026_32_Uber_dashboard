@@ -349,6 +349,9 @@ def server(input, output, session):
             .fillna('')
         )
         return df
+    @reactive.calc
+    def filtered_data_date_only():
+        return uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
 
     @reactive.Effect
     def reset_filters():
@@ -496,7 +499,7 @@ def server(input, output, session):
 
     @render_plotly
     def rating_bar():
-        df = filtered_data()
+        df = filtered_data_date_only()
         avg = df.groupby("Vehicle_Type")["Driver_Ratings"].mean().reset_index()
 
         min_val = avg["Driver_Ratings"].min()
@@ -592,7 +595,7 @@ def server(input, output, session):
 
     @render_plotly
     def pie_chart():
-        df = filtered_data()
+        df = filtered_data_date_only()
         if df.empty:
             return go.Figure(go.Pie(labels=["No data available"], values=[1]))
 
