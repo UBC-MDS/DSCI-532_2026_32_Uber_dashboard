@@ -327,20 +327,13 @@ def server(input, output, session):
     # Single filtered_data() using ibis for date + vehicle type filtering
     @reactive.calc
     def filtered_data():
-        table = uber_table
-        table = table.mutate(Date=table.Date.cast('timestamp'))
-
-        date_min, date_max = input.slider()
-        date_min = pd.Timestamp(date_min)
-        date_max = pd.Timestamp(date_max)
-
-        table = table.filter(table.Date.between(date_min, date_max))
+        expr = filtered_by_date(uber_table)
 
         selected = input.vehicle_type()
         if selected and "All" not in selected:
-            table = table.filter(table.Vehicle_Type.isin(selected))
+            expr = expr.filter(expr.Vehicle_Type.isin(selected))
 
-        df = table.execute()
+        df = expr.execute()
         df.columns = df.columns.str.replace(" ", "_", regex=False)
         df["Issue_Reason"] = (
             df.get("Reason_for_cancelling_by_Customer", pd.Series(dtype=str))
@@ -349,9 +342,21 @@ def server(input, output, session):
             .fillna('')
         )
         return df
+
+    def filtered_by_date(table):
+        expr = table.mutate(Date=table.Date.cast('timestamp'))
+
+        date_min, date_max = input.slider()
+        date_min = pd.Timestamp(date_min)
+        date_max = pd.Timestamp(date_max)
+
+        expr = expr.filter(expr.Date.between(date_min, date_max))
+        return expr
+
     @reactive.calc
     def filtered_data_date_only():
-        return uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
+        expr = filtered_by_date(uber_table)
+        return expr.execute()
 
     @reactive.Effect
     def reset_filters():
