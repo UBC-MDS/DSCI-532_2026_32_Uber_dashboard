@@ -9,6 +9,7 @@ import querychat
 from chatlas import ChatGithub
 import ibis
 import plotly.graph_objects as go
+from data_wrangling import data_wrangling
 
 
 # ---------------- DATA ----------------
@@ -29,17 +30,7 @@ else:
     uber.to_parquet(parquet_path, engine="pyarrow", index=False)
 
 # Clean and transform
-uber.columns = uber.columns.str.replace(" ", "_", regex=False)
-uber["Date"] = pd.to_datetime(uber["Date"])
-uber['Issue_Reason'] = (
-    uber['Reason_for_cancelling_by_Customer']
-    .fillna(uber['Driver_Cancellation_Reason'])
-    .fillna(uber['Incomplete_Rides_Reason'])
-    .fillna('')
-)
-for col in uber.columns:
-    if uber[col].dtype.kind not in ('M', 'i', 'u', 'f', 'b'):
-        uber[col] = uber[col].astype(object)
+data_wrangling(uber)
 
 # Save clean parquet AFTER renaming, then load into ibis
 if not os.path.exists(clean_parquet_path):
