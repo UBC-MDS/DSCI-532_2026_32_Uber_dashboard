@@ -17,33 +17,35 @@ BASE_DIR = Path(__file__).parent
 csv_path = BASE_DIR.parent / "data" / "raw" / "ncr_ride_bookings.csv"
 csv_path.parent.mkdir(parents=True, exist_ok=True)
 parquet_path = BASE_DIR.parent / "data" / "processed" / "ncr_ride_bookings.parquet"
+clean_parquet_path = BASE_DIR.parent / "data" / "processed" / "ncr_ride_bookings_clean.parquet"
 
-# If parquet exists, load it; else create it once
+# Load raw parquet or CSV
 if os.path.exists(parquet_path):
     uber = pd.read_parquet(parquet_path)
 else:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
     uber = pd.read_csv(csv_path)
     parquet_path.parent.mkdir(parents=True, exist_ok=True)
     uber.to_parquet(parquet_path, engine="pyarrow", index=False)
 
-# Connect to DuckDB (in-memory, no file path needed)
-con = ibis.duckdb.connect()
-uber_table = con.read_parquet(parquet_path)
-
+# Clean and transform
 uber.columns = uber.columns.str.replace(" ", "_", regex=False)
 uber["Date"] = pd.to_datetime(uber["Date"])
-
 uber['Issue_Reason'] = (
     uber['Reason_for_cancelling_by_Customer']
     .fillna(uber['Driver_Cancellation_Reason'])
     .fillna(uber['Incomplete_Rides_Reason'])
     .fillna('')
 )
-
-# Cast all string-like columns to plain object dtype (fixes querychat/DuckDB registration)
 for col in uber.columns:
-    if uber[col].dtype.kind not in ('M', 'i', 'u', 'f', 'b'):  # skip datetime, int, float, bool
+    if uber[col].dtype.kind not in ('M', 'i', 'u', 'f', 'b'):
         uber[col] = uber[col].astype(object)
+
+# Save clean parquet AFTER renaming, then load into ibis
+if not os.path.exists(clean_parquet_path):
+    uber.to_parquet(clean_parquet_path, engine="pyarrow", index=False)
+con = ibis.duckdb.connect()
+uber_table = con.read_parquet(clean_parquet_path)
 
 # ---------------- QUERYCHAT SETUP ----------------
 load_dotenv(Path(__file__).parent / ".env")
