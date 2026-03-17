@@ -63,7 +63,7 @@ playwright install
 ```
 
 ### 3. Run Tests in Headed Mode
-In the root directory, you can now run tests with the browser UI visible:
+You can now run tests with the browser UI visible:
 ```bash
 pytest --headed
 ```

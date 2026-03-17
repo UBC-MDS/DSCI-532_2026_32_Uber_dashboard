@@ -44,6 +44,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-03-16
+This release expands more advanced feature, added test cases and parquet and also some UI issues fixed.
+
+### Added
+- Test cases #todo (need more explainaton)
+- Added code to app.py to convert csv to parquet
+- Connected to duckDB
+- dapted filtering to duckDB on the dashboard
+- #todo (the advanced feature)
+
+
+### Changed
+- For smaller slices in the pie chart, labels are positioned outside the chart with arrows pointing to the corresponding slice. This improves readability and ensures that the text remains legible even for small proportions.
+- In the Booking Status Breakdown visualization, abbreviated labels are used to reduce visual clutter. A codebook (legend) is provided below the figure to clearly define each abbreviation.
+- The explicit “All” option in the vehicle type filter was removed and replaced with an empty default selection. When no vehicle type is selected, the dashboard automatically displays data for all vehicle types.
+
+### Fixed
+- Increased font size in Revenue Distribution by Vehicle Type.
+- Increased font size in Booking Status Breakdown sunburst chart. 
+- Resolve the issue of cut off in In Uber XL rateing  in bar chart "Avg Driver Rating by Vehicle Type".
+- Moving Average appled to smooth the line plot "Total Booking Value Over Time".
+- Repositioned the Sunburst plot and increased font sizes for better readability.
+- Adjusted spacing, margins, and gaps for a cleaner layout.
+- Resolved the issue of booking value y-axis not showing in full.
+
+### Known Issues
+- Adding dark mode switch 
+- Layout sizing is not fully responsive; components may appear larger or smaller depending on the device screen size.
+- The LLM feature occasionally crashes or fails to load; a page refresh resolves this
+---
+
+#todo 
+### Release Highlight: [Name of your advanced feature]
+- **Option chosen:** D
+- **PR:** #...
+- **Why this option over the others:** <!-- 1–2 sentences; link to your feature prioritization issue -->
+- **Feature prioritization issue link:** [#79](https://github.com/UBC-MDS/DSCI-532_2026_32_Uber_dashboard/issues/79)
+
+
+### Collaboration
+
+The dashboard presents booking and revenue insights through clear visualizations and an organized layout, enabling users to quickly identify trends such as revenue distribution by vehicle type and booking status. Interactive charts and consistent styling improve readability and usability. However, some limitations remain, including limited filtering options and relatively simple interaction patterns, which may restrict deeper exploration of the data. Minor deviations from DSCI 531 visualization best practices were made to maintain layout clarity and prioritize readability within the available dashboard space.
+
+- Users can modify the date range to view filtered results for total bookings, total revenue, and canceled bookings within the selected period. The pie chart also displays the percentage distribution of bookings by vehicle type based on the selected filters.
+- The dashboard presents the average driver rating by vehicle type as a bar chart, with the ability to filter for one or multiple vehicle categories while maintaining a consistent color scheme across the dashboard.
+- The sunburst chart allows users to explore the proportional breakdown of completed versus canceled bookings, including cancellation sources and reasons.
+- Users can query the dataset using natural language through an integrated LLM chat feature, with two reactive dashboard elements updating dynamically based on the generated responses.
+- The currently filtered dataset can be downloaded directly from the dashboard using a download button.
+
+Compared to M3:
+
+- Data handling was improved by converting the dataset to Parquet format and querying it using DuckDB, which significantly enhances data loading and filtering performance.
+- Automated test cases were introduced to validate core filtering logic and key dashboard behaviors, helping ensure stability as the project evolves.
+- A component click-event interaction feature was implemented, allowing the dashboard to respond to user interactions with visual components and enabling more dynamic exploratory analysis.
+- The internal application structure was refined to support performance improvements, testing, and interactive features, resulting in a more maintainable and robust architecture.
+- Several UI refinements were introduced to improve readability and reduce visual clutter, including layout adjustments, clearer labeling, and improved chart presentation.
+
+Overall, version 0.4.0 represents a significant improvement in the dashboard’s performance, interactivity, and maintainability, strengthening its technical foundation for future development.
+
+**Trade-offs:** We prioritized improvements that enhanced readability and visual clarity (such as font sizing and chart labeling) over implementing additional advanced features due to time and milestone constraints.
+
+**Most useful:** Lecture materials on effective dashboard design and visualization best practices were particularly helpful in guiding layout decisions and improving chart readability. Feedback from earlier milestones also helped identify areas where visual clarity and labeling could be improved.
+
+---
+
 ## [0.3.0] - 2026-03-09
 This release expands more advanced layout edited and some issues fixed and QueryChat Feature added.
 
