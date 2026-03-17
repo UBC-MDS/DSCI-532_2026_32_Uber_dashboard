@@ -13,10 +13,11 @@ def test_date_slider(page: Page, app: ShinyAppProc) -> None:
     page.wait_for_load_state("networkidle")
     total_revenue = controller.OutputText(page, "total_revenue")
     slider = controller.InputSliderRange(page, "slider")
-
-    # initial state
+    selectize = controller.InputSelectize(page, "vehicle_type")
     slider.expect_value(("2024-01-01", "2024-12-30"))
 
-    slider.set(("2024-01-04", "2024-12-26"))
-    slider.expect_value(("2024-01-04", "2024-12-26"), timeout=30000)
-    total_revenue.expect_value("51M", timeout=60000)
+    selectize.set("Go Mini")
+    slider.set(("2024-01-04", "2024-12-30"))
+    selectize.expect_selected(["Go Mini"])
+    slider.expect_value(("2024-01-04", "2024-12-30"))
+    total_revenue.expect_value("10M", timeout=60000)

@@ -25,7 +25,7 @@ def test_reset_button(page: Page, app: ShinyAppProc) -> None:
     canceled_bookings.expect_value("6K", timeout=20000)
 
     reset_button.click()
-    
+    page.wait_for_selector("html:not(.shiny-busy)")
     selectize.expect_selected([], timeout=40000)
     slider.expect_value(("2024-01-01", "2024-12-30"), timeout=40000)
     canceled_bookings.expect_value("38K", timeout=40000)
