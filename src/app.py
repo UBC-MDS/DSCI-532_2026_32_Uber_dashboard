@@ -13,29 +13,24 @@ import plotly.graph_objects as go
 
 # ---------------- DATA ----------------
 
-
-# Load processed dataset
 BASE_DIR = Path(__file__).parent
-csv_path = BASE_DIR.parent / "data" / "raw"/ "ncr_ride_bookings.csv"
+csv_path = BASE_DIR.parent / "data" / "raw" / "ncr_ride_bookings.csv"
 csv_path.parent.mkdir(parents=True, exist_ok=True)
-parquet_path = BASE_DIR.parent / "data" / "processed"/ "ncr_ride_bookings.parquet"
+parquet_path = BASE_DIR.parent / "data" / "processed" / "ncr_ride_bookings.parquet"
+clean_parquet_path = BASE_DIR.parent / "data" / "processed" / "ncr_ride_bookings_clean.parquet"
 
-# If parquet exists, load it; else create it once
+# Load raw parquet or CSV
 if os.path.exists(parquet_path):
     uber = pd.read_parquet(parquet_path)
 else:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
     uber = pd.read_csv(csv_path)
+    parquet_path.parent.mkdir(parents=True, exist_ok=True)
     uber.to_parquet(parquet_path, engine="pyarrow", index=False)
 
-
-# Connect to DuckDB
-con = ibis.duckdb.connect()  # creates file-based DB
-uber_table = con.read_parquet(parquet_path)
-
-
+# Clean and transform
 uber.columns = uber.columns.str.replace(" ", "_", regex=False)
 uber["Date"] = pd.to_datetime(uber["Date"])
-
 uber['Issue_Reason'] = (
     uber['Reason_for_cancelling_by_Customer']
     .fillna(uber['Driver_Cancellation_Reason'])
@@ -43,10 +38,16 @@ uber['Issue_Reason'] = (
     .fillna('')
 )
 for col in uber.columns:
-    if uber[col].dtype.kind not in ('M', 'i', 'u', 'f', 'b'):  # skip datetime, int, float, bool
+    if uber[col].dtype.kind not in ('M', 'i', 'u', 'f', 'b'):
         uber[col] = uber[col].astype(object)
-# ---------------- querychat setup ----------------
-# Load .env from the same directory
+
+# Save clean parquet AFTER renaming, then load into ibis
+if not os.path.exists(clean_parquet_path):
+    uber.to_parquet(clean_parquet_path, engine="pyarrow", index=False)
+con = ibis.duckdb.connect()
+uber_table = con.read_parquet(clean_parquet_path)
+
+# ---------------- QUERYCHAT SETUP ----------------
 load_dotenv(Path(__file__).parent / ".env")
 
 qc = querychat.QueryChat(
@@ -85,18 +86,18 @@ app_ui = ui.page_fluid(
                     background: var(--bs-body-bg);
                     color: var(--bs-body-color);
                 }
-                          
+
                 .dashboard-title {
                     font-size: 16px;
                     font-weight: 800;
                 }
-                          
+
                 .dashboard-header {
                     display: flex;
                     flex-direction: row;
                     padding: 2px 8px;
                 }
-                
+
                 .theme-toggle-wrap {
                     display: flex;
                     align-items: center;
@@ -108,7 +109,7 @@ app_ui = ui.page_fluid(
                     font-size: 12px;
                     color: var(--bs-body-color);
                 }
-                        
+
                 #root, .bslib-page-fillable, .container-fluid {
                     height:100vh !important;
                     width:100vw !important;
@@ -122,7 +123,6 @@ app_ui = ui.page_fluid(
                     height: 100% !important;
                 }
 
-                /* Querychat chat container selectors  */
                 .chat-container, .chat-messages, .messages-container,
                 [class*="chat"], [class*="message"], .querychat-container,
                 div[class*="chat"][style*="height"], div[style*="overflow"] {
@@ -132,13 +132,11 @@ app_ui = ui.page_fluid(
                     scrollbar-width: thin !important;
                 }
 
-                /* Original dashboard sidebar */
                 .nav-panel:not([data-tab="AI-Powered"]) .sidebar,
                 .layout-sidebar:not(.page-sidebar) .sidebar {
                     overflow: hidden !important;
                 }
 
-                /* Charts and main content */
                 .js-plotly-plot, .plot-container, .svg-container,
                 .ai-main-content, .main, .layout-main {
                     height:100% !important;
@@ -186,32 +184,31 @@ app_ui = ui.page_fluid(
                 ),
                 class_="dashboard-header"
             ),
+
             # ---------------- SIDEBAR + MAIN ----------------
             ui.layout_sidebar(
                 ui.sidebar(
-                    # --- Wrap slider in a div with margin-bottom to prevent scrolling ---
                     ui.div(
                         ui.input_slider(
                             "slider",
                             "Date range",
                             min=uber.Date.min(),
                             max=uber.Date.max(),
-                            value=[uber.Date.min(), uber.Date.max()], 
+                            value=[uber.Date.min(), uber.Date.max()],
                             time_format="%Y-%m-%d",
                             timezone="UTC"
                         ),
-                        style="margin-left:10px; margin-right:10px;"  # extra space for min/max labels
+                        style="margin-left:10px; margin-right:10px;"
                     ),
-
                     ui.input_selectize(
                         "vehicle_type",
                         "Vehicle Type",
                         choices=sorted(uber["Vehicle_Type"].unique()),
                         selected=[],
                         multiple=True,
-                        options={"placeholder": " select vehicle types..."}  # blank space shown initially
+                        options={"placeholder": " select vehicle types..."}
                     ),
-                    ui.input_action_button("action_button","Reset Filters"),
+                    ui.input_action_button("action_button", "Reset Filters"),
                     width=230
                 ),
                 ui.layout_columns(
@@ -251,7 +248,7 @@ app_ui = ui.page_fluid(
                                 ]),
                                 class_="kpi-card"
                             ),
-                            col_widths=[4,4,4],
+                            col_widths=[4, 4, 4],
                             style="gap:4px;margin-bottom:4px;"
                         ),
                         ui.card(
@@ -278,9 +275,9 @@ app_ui = ui.page_fluid(
                             style="height:195px;margin-bottom:4px;padding:0;"
                         )
                     ),
-                    col_widths=[6,6],
+                    col_widths=[6, 6],
                     style="gap:4px;"
-                )   
+                )
             )
         ),
 
@@ -292,8 +289,8 @@ app_ui = ui.page_fluid(
                         ui.card_header([
                             "Filtered Data",
                             ui.download_button(
-                                "download_data", 
-                                "📥 Download CSV", 
+                                "download_data",
+                                "📥 Download CSV",
                                 class_="btn btn-outline-primary btn-sm float-end"
                             )
                         ]),
@@ -314,7 +311,7 @@ app_ui = ui.page_fluid(
                         col_widths=[6, 6],
                         style="gap:8px;"
                     ),
-                    class_="ai-main-content" 
+                    class_="ai-main-content"
                 ),
                 fillable=True
             )
@@ -327,23 +324,17 @@ app_ui = ui.page_fluid(
 def server(input, output, session):
     qc_vals = qc.server()
 
+    # Single filtered_data() using ibis for date + vehicle type filtering
     @reactive.calc
     def filtered_data():
-        table = uber_table
-        table = table.mutate(Date=table.Date.cast('timestamp'))
-
-        date_min, date_max = input.slider()
-        date_min = pd.Timestamp(date_min)
-        date_max = pd.Timestamp(date_max)
-
-        table = table.filter(table.Date.between(date_min, date_max))  # also fixes the FutureWarning
+        expr = filtered_by_date(uber_table)
 
         selected = input.vehicle_type()
         if selected and "All" not in selected:
-            table = table.filter(table.Vehicle_Type.isin(selected))
+            expr = expr.filter(expr.Vehicle_Type.isin(selected))
 
-        df = table.execute()
-        df.columns = df.columns.str.replace(" ", "_", regex=False)  # ← ADD THIS
+        df = expr.execute()
+        df.columns = df.columns.str.replace(" ", "_", regex=False)
         df["Issue_Reason"] = (
             df.get("Reason_for_cancelling_by_Customer", pd.Series(dtype=str))
             .fillna(df.get("Driver_Cancellation_Reason", pd.Series(dtype=str)))
@@ -352,25 +343,27 @@ def server(input, output, session):
         )
         return df
 
+    def filtered_by_date(table):
+        expr = table.mutate(Date=table.Date.cast('timestamp'))
+
+        date_min, date_max = input.slider()
+        date_min = pd.Timestamp(date_min)
+        date_max = pd.Timestamp(date_max)
+
+        expr = expr.filter(expr.Date.between(date_min, date_max))
+        return expr
+
     @reactive.calc
     def filtered_data_date_only():
-        return uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
+        expr = filtered_by_date(uber_table)
+        return expr.execute()
 
     @reactive.Effect
     def reset_filters():
         if input.action_button() > 0:
             ui.update_slider("slider", value=[uber.Date.min(), uber.Date.max()])
             ui.update_selectize("vehicle_type", selected=[])
-            
-    @reactive.calc
-    def filtered_data():
-        df = uber[uber.Date.between(input.slider()[0], input.slider()[1], inclusive="both")]
-        selected = input.vehicle_type()
-        if selected:  # filter only if user selected anything
-            df = df[df.Vehicle_Type.isin(selected)]
-        # if nothing selected → return all rows
-        return df
-    
+
     @reactive.calc
     def vehicle_label():
         selected = list(input.vehicle_type())
@@ -378,12 +371,12 @@ def server(input, output, session):
             return f": {selected[0]}"
         elif len(selected) > 1:
             return f": {', '.join(selected)}"
-        return "" 
-    
+        return ""
+
     @render.text
     def line_chart_title():
-        return f"Total Booking Value Over Time{vehicle_label()}"
-    
+        return f"Total Booking Value Over Time ( 7-Day Moving Average ){vehicle_label()}"
+
     @render.text
     def sunburst_title():
         return f"Booking Status Breakdown{vehicle_label()}"
@@ -402,10 +395,10 @@ def server(input, output, session):
     def vehicle_suffix_cancelled():
         selected = list(input.vehicle_type())
         return selected[0] if len(selected) == 1 else ', '.join(selected) if selected else ""
+
     def plot_theme():
         mode = input.theme_mode()
         is_dark = mode in ("dark", True)
-
         if is_dark:
             return {
                 "text": "#e9ecef",
@@ -432,19 +425,17 @@ def server(input, output, session):
         df = filtered_data()
         count = df[df.Cancelled_Rides_by_Driver == 1].shape[0] + df[df.Cancelled_Rides_by_Customer == 1].shape[0]
         return shiny_human_format(count)
-                
+
     # ---------------- CHARTS ----------------
     @render_plotly
     def sunburst_chart():
-        
         booking_status = (
             filtered_data()
             .groupby(["Booking_Status", "Issue_Reason"])
             .size()
             .reset_index(name="counts")
         )
-            
-        # Short labels mapping
+
         booking_status_issue_short = {
             "Incomplete": "InComp",
             "No Driver Found": "NoDrv",
@@ -463,28 +454,20 @@ def server(input, output, session):
             "Never on unmanned people in time": "NoShowTime",
             "The customer was coughing/sick": "CustSick",
             "More than permitted people in there": "OverCap",
-            "Driver is not moving towards pickup location": "DrvNotMove", 
+            "Driver is not moving towards pickup location": "DrvNotMove",
         }
-        
-        # Map short labels, fill unmapped with original
+
         booking_status["Booking_Status_Short"] = booking_status["Booking_Status"].map(
             booking_status_issue_short).fillna(booking_status["Booking_Status"])
-    
-        # Replace empty or NaN Issue_Reason with placeholder
+
         booking_status["Issue_Reason"] = booking_status["Issue_Reason"].fillna("No Issue")
         booking_status["Issue_Reason"] = booking_status["Issue_Reason"].replace("", "Not Given")
-        
         booking_status["Issue_Reason"] = booking_status["Issue_Reason"].map(
             booking_status_issue_short).fillna(booking_status["Issue_Reason"])
 
-
-        # Ensure both columns are strings
         booking_status["Booking_Status_Short"] = booking_status["Booking_Status_Short"].astype(str)
         booking_status["Issue_Reason"] = booking_status["Issue_Reason"].astype(str)
 
-
-        # booking_status["Booking_Status_Short"] = booking_status["Booking_Status"].map(booking_status_short)
-        # Create sunburst
         fig = px.sunburst(
             booking_status,
             path=["Booking_Status_Short", "Issue_Reason"],
@@ -492,19 +475,16 @@ def server(input, output, session):
             color_discrete_sequence=px.colors.qualitative.Set1,
         )
         fig.update_traces(
-          domain=dict(x=[0.15, 0.99], y=[0.15, 0.98])   # push chart to the right
-            )
+            domain=dict(x=[0.15, 0.99], y=[0.15, 0.98])
+        )
 
-        # Codebook
         codebook_text = "<br>".join([f"{v} = {k}" for k, v in booking_status_issue_short.items()])
 
         t = plot_theme()
         fig.update_layout(
             margin=dict(l=1, r=1, t=1, b=8),
-
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-
             annotations=[
                 dict(
                     text=f"<b>Codebook:</b><br>{codebook_text}",
@@ -520,16 +500,15 @@ def server(input, output, session):
                 )
             ],
         )
-
         return fig
-    
+
     @render_plotly
     def rating_bar():
         df = filtered_data_date_only()
         avg = df.groupby("Vehicle_Type")["Driver_Ratings"].mean().reset_index()
 
         min_val = avg["Driver_Ratings"].min()
-        max_val = avg["Driver_Ratings"].max()+0.005
+        max_val = avg["Driver_Ratings"].max() + 0.005
         padding = (max_val - min_val) * 0.05
         y_range = [min_val - padding, max_val + padding]
 
@@ -541,15 +520,14 @@ def server(input, output, session):
             color="Vehicle_Type",
             color_discrete_sequence=px.colors.qualitative.Set2
         )
-
         fig.update_traces(texttemplate="%{text:.4f}", textposition="outside")
 
         t = plot_theme()
         fig.update_layout(
             showlegend=False,
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=5,r=5,t=25,b=5),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=5, r=5, t=25, b=5),
             xaxis_title="",
             yaxis_title="Average Rating",
             font=dict(color=t["text"]),
@@ -565,18 +543,17 @@ def server(input, output, session):
                 range=y_range
             )
         )
-        
+
         fig_widget = go.FigureWidget(fig)
-        
+
         def on_bar_click(trace, points, state):
             if points.point_inds:
                 vehicle = trace.x[points.point_inds[0]]
                 current = list(input.vehicle_type())
                 if len(current) == 1 and vehicle in current:
-                    ui.update_selectize("vehicle_type", selected=[])   # toggle off
+                    ui.update_selectize("vehicle_type", selected=[])
                 else:
                     ui.update_selectize("vehicle_type", selected=[vehicle])
-
 
         for trace in fig_widget.data:
             trace.on_click(on_bar_click)
@@ -588,31 +565,25 @@ def server(input, output, session):
         df = filtered_data()
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
 
-        # ------------------ Add Moving Average ------------------
-        window_size = 7  # 7-day moving average; you can change to 3, 14, etc.
+        window_size = 7
         df_agg['Booking_Value_MA'] = df_agg['Booking_Value'].rolling(
             window=window_size, min_periods=1, center=True
-            ).mean()
-
+        ).mean()
 
         fig = px.line(
-            df_agg, 
-            x="Date", 
+            df_agg,
+            x="Date",
             y="Booking_Value_MA",
             labels={"Booking_Value_MA": "Booking Value"},
-            title=f"({window_size}-Day Moving Average)"
-            )
+        )
 
         t = plot_theme()
         fig.update_layout(
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            xaxis_title="",
-            yaxis_title="Booking Val.",
-            margin=dict(l=5,r=5,t=20,b=20)
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=5,r=5,t=45,b=15),
+            xaxis_title="",
+            yaxis_title="Booking Val.",
+            margin=dict(l=5, r=5, t=45, b=15),
             font=dict(color=t["text"]),
             xaxis=dict(
                 tickfont=dict(color=t["axis"]),
@@ -624,25 +595,21 @@ def server(input, output, session):
                 title_font=dict(color=t["axis"]),
                 gridcolor=t["grid"],
             ),
-
         )
-
         return fig
-            
+
     @render_plotly
     def pie_chart():
         df = filtered_data_date_only()
         if df.empty:
-            # handle empty data
             return go.Figure(go.Pie(labels=["No data available"], values=[1]))
 
         revenue = df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
         total = revenue["Booking_Value"].sum()
-        threshold = 0.15  # slices <5% of total are considered small
+        threshold = 0.15
 
-        # per-slice text positions: small slices outside, others inside
         text_pos = ["outside" if v / total < threshold else "inside" for v in revenue["Booking_Value"]]
-        pull_vals = [0.02 if v / total < threshold else 0 for v in revenue["Booking_Value"]]  # slight pull for clarity
+        pull_vals = [0.02 if v / total < threshold else 0 for v in revenue["Booking_Value"]]
 
         fig = go.Figure(
             go.Pie(
@@ -655,16 +622,54 @@ def server(input, output, session):
             )
         )
 
-        # fig.update_layout(
-        #     showlegend=False,
-        #     margin=dict(l=0, r=0, t=0, b=1),
-        #     plot_bgcolor="white",
-        #     paper_bgcolor="white"
-        # )
         t = plot_theme()
         fig.update_layout(
             showlegend=False,
             margin=dict(l=0, r=0, t=0, b=1),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=t["text"]),
+        )
+
+        fig_widget = go.FigureWidget(fig)
+
+        def on_pie_click(trace, points, state):
+            if points.point_inds:
+                vehicle = trace.labels[points.point_inds[0]]
+                current = list(input.vehicle_type())
+                if len(current) == 1 and vehicle in current:
+                    ui.update_selectize("vehicle_type", selected=[])
+                else:
+                    ui.update_selectize("vehicle_type", selected=[vehicle])
+
+        fig_widget.data[0].on_click(on_pie_click)
+        return fig_widget
+
+    @render.data_frame
+    def qc_data_table():
+        return qc_vals.df()
+
+    @render_plotly
+    def qc_pie_chart():
+        df = qc_vals.df()
+        if df.empty:
+            return px.pie(title="No data available")
+
+        revenue = df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
+
+        fig = px.pie(
+            revenue,
+            names="Vehicle_Type",
+            values="Booking_Value",
+            color="Vehicle_Type",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+
+        fig.update_traces(textinfo="percent+label", textposition="inside")
+        t = plot_theme()
+        fig.update_layout(
+            showlegend=False,
+            margin=dict(l=0, r=0, t=0, b=0),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color=t["text"]),
@@ -678,78 +683,24 @@ def server(input, output, session):
                 title_font=dict(color=t["axis"]),
                 gridcolor=t["grid"],
             ),
-
-        )
-        
-        fig_widget = go.FigureWidget(fig)
-
-        def on_pie_click(trace, points, state):
-            if points.point_inds:
-                vehicle = trace.labels[points.point_inds[0]]
-                current = list(input.vehicle_type())
-                if len(current) == 1 and vehicle in current:
-                    ui.update_selectize("vehicle_type", selected=[])   # toggle off
-                else:
-                    ui.update_selectize("vehicle_type", selected=[vehicle])
-
-        fig_widget.data[0].on_click(on_pie_click)
-
-        return fig_widget
-    
-    @render.data_frame
-    def qc_data_table():
-        return qc_vals.df()
-
-    @render_plotly
-    def qc_pie_chart():
-        df = qc_vals.df()
-        if df.empty:
-            return px.pie(title="No data available")
-        
-        revenue = df.groupby("Vehicle_Type")["Booking_Value"].sum().reset_index()
-        
-        fig = px.pie(
-            revenue,
-            names="Vehicle_Type",
-            values="Booking_Value",
-            color="Vehicle_Type",
-            color_discrete_sequence=px.colors.qualitative.Set2
-        )
-        
-        fig.update_traces(textinfo="percent+label", textposition="inside")
-        t = plot_theme()
-        fig.update_layout(
-            showlegend=False,
-            margin=dict(l=0,r=0,t=0,b=0),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            xaxis=dict(
-                tickfont=dict(color=t["axis"]),
-                title_font=dict(color=t["axis"]),
-                gridcolor=t["grid"],
-            ),
-            yaxis=dict(
-                tickfont=dict(color=t["axis"]),
-                title_font=dict(color=t["axis"]),
-                gridcolor=t["grid"],
-            ),
         )
         return fig
-    
+
     @render_plotly
     def qc_line_chart():
         df = qc_vals.df()
         if df.empty:
             return px.line(title="No data available")
-        
+
         df_agg = df.groupby("Date")["Booking_Value"].sum().reset_index()
-        
+
         fig = px.line(df_agg, x="Date", y="Booking_Value")
         t = plot_theme()
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=1,r=1,t=1,b=1),
+            margin=dict(l=1, r=1, t=1, b=1),
+            font=dict(color=t["text"]),
             xaxis=dict(
                 tickfont=dict(color=t["axis"]),
                 title_font=dict(color=t["axis"]),
@@ -760,10 +711,9 @@ def server(input, output, session):
                 title_font=dict(color=t["axis"]),
                 gridcolor=t["grid"],
             ),
-
         )
         return fig
-    
+
     @render.download(filename="uber_filtered_data.csv")
     def download_data():
         df = qc_vals.df()
@@ -772,8 +722,6 @@ def server(input, output, session):
         else:
             yield df.to_csv(index=False)
 
-    # ---------------- QUERYCHAT ----------------
-    # Adapted from https://github.com/UBC-MDS/DSCI_532_vis-2_book/blob/main/code/lecture05/app-07-querychat.py
     @render.text
     def title():
         return qc_vals.title() or "Uber Rides dataset"
