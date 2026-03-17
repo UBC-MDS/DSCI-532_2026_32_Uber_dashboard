@@ -5,7 +5,10 @@ from shiny.run import ShinyAppProc
 
 app = create_app_fixture("../src/app.py")
 
-def test_basic_app(page: Page, app: ShinyAppProc) -> None:
+def test_vehicle_select(page: Page, app: ShinyAppProc) -> None:
+    """Checks that selecting a vehicle type will render the correct 
+    number for the 'Total Bookings' output text.
+    """
     page.goto(app.url)
 
     total_bookings = controller.OutputText(page, "total_bookings")

@@ -17,7 +17,8 @@ def data():
 
 def test_data_wrangling(data):
     """Test that check for consistency in 'Issue_Reason' with their source
-    columns for corresponding 'Booking_Status'
+    columns for corresponding 'Booking_Status'. This is data validation necessary to generated
+    the sunburst chart correctly.
     """
     data_wrangling(data)
     null_error = "There are still null values in the Issue_Reason column."
