@@ -6,45 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.4.0] - 2026-03-17
-
-### Added   
-
-### Changed
-
-### Fixed
-
-### Known Issues
-
-- <!-- Anything incomplete or broken TAs should be aware of (so it isn't mistaken for unfinished work). -->
-
-### Release Highlight: Chart-Based Vehicle Selection
-
-### Collaboration
-
-<!-- Summary of workflow or collaboration improvements made since M3. -->
-
-- **CONTRIBUTING.md:** <!-- Link to the PR that updated it with your M3 retrospective and M4 norms. -->
-- **M3 retrospective:** <!-- What changed in your workflow after M3 collaboration feedback. -->
-- **M4:** <!-- What you tried or improved this milestone. -->
-
-### Reflection
-
-**Tests:**
-- `test_data_wrangling` verifies that the data wrangling prepares the data as expected for the sunburst chart. May fail if the data wrangling process changes.
-- `test_vehicle_select` verifies that the vehicle selection results in the correct number for the 'Total Bookings' KPI. May fail if the vehicle selection logic changes.
-- `test_date_slider` verifies that the date range slider works with the vehicle selection to filter the dashboard view. May fail if the date range filter logic changes.
-- `test_reset_button` verifies that the reset button makes sure the dashboard renders based on the default state of the data after the date range slider and vehicle selection were set. May fail if the reset button logic changes.
-<!-- Standard (see General Guidelines): what the dashboard does well, current limitations,
-     any intentional deviations from DSCI 531 visualization best practices. -->
-
-<!-- Trade-offs: one sentence on feedback prioritization - full rationale is in #<issue> and ### Changed above. -->
-
-<!-- Most useful: which lecture, material, or feedback shaped your work most this milestone,
-     and anything you wish had been covered. -->
-
----
-
-## [0.4.0] - 2026-03-17
 This release introduces a database‑backed data pipeline with Parquet caching, 
 a dedicated data wrangling module, and a suite of automated tests, 
 while also refining UI interactions, filters, and chart readability across the dashboard.
