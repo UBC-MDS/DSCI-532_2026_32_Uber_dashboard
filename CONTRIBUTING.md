@@ -1,5 +1,22 @@
 # Contributing
 
+## M3 retrospective
+What went well:
+- Everyone takes initiative to get their assigned works done.
+- Works are well-split (two people worked on the Querychat integration and charts, and the other two people fixed based on feedback).
+
+What can be improved:
+- A few PRs got merged without reviewed by other teammates. This reduces traceability, increasing the chance of missed integration issues, and decreasing shared awareness of code changes.
+- PR sometimes includes unrelated code changes or commits.
+- Spec docs are not updated based on the implementation changes.
+
+## M4 norm:
+- Every PR will get reviewed by someone who did not open it before merged.
+- PR review process will include examining commits relevancy to the issues being resolved.
+- Spec docs will be updated prior to code changes, and code changes will be reviewed to ensure compliance to the spec doc.
+
+## For Contribution from outside: 
+
 Contributions of all kinds are welcome here, and they are greatly appreciated!
 Every little bit helps, and credit will always be given.
 

@@ -4,14 +4,14 @@ channels:
 dependencies:
   - python>=3.12
   - pip
-  - pandas
   - matplotlib
   - seaborn
   - ipykernel
   - ridgeplot
   - openai
   - anthropic
-
+  - ibis-framework
+  - duckdb
   - pip:
       - openai==2.24.0
       - pandas==3.0.1
@@ -23,3 +23,5 @@ dependencies:
       - querychat
       - python-dotenv
       - chatlas
+      - pytest
+      - pytest-playwright
